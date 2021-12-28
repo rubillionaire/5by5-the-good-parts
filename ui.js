@@ -6,6 +6,7 @@ const Component = require('choo/component')
 const app = choo()
 app.use(showStore)
 app.route('/', mainView)
+app.route('/5by5-archive', mainView)
 app.route('/5by5-archive/', mainView)
 app.mount('#app')
 
