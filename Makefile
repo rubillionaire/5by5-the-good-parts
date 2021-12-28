@@ -1,6 +1,6 @@
 .PHONY: clean
 
-build: clean-built-javascript dl-shows public/shows.json
+build: clean-built-javascript dl-feeds public/shows.json
 	npm run bundle-javascript
 
 dev:
@@ -12,29 +12,25 @@ deploy: build
 public/shows.json:
 	node make-shows-feed.js
 
-dl-shows: talkshow hypercritical buildanalyze afterdark b2w
+dl-feeds: feeds/talkshow feeds/hypercritical feeds/buildanalyze feeds/afterdark feeds/b2w
 
-talkshow:
-	curl -O https://feeds.5by5.tv/talkshow
+feeds/talkshow:
+	curl https://feeds.5by5.tv/talkshow -o feeds/talkshow
 
-hypercritical:
-	curl -O http://feeds.5by5.tv/hypercritical
+feeds/hypercritical:
+	curl http://feeds.5by5.tv/hypercritical -o feeds/hypercritical
 
-buildanalyze:
-	curl -O http://feeds.5by5.tv/buildanalyze
+feeds/buildanalyze:
+	curl http://feeds.5by5.tv/buildanalyze -o feeds/buildanalyze
 
-afterdark:
-	curl -O https://feeds.5by5.tv/afterdark
+feeds/afterdark:
+	curl https://feeds.5by5.tv/afterdark -o feeds/afterdark
 
-b2w:
-	curl -O https://feeds.5by5.tv/b2w
+feeds/b2w:
+	curl https://feeds.5by5.tv/b2w -o feeds/b2w
 
 clean-source-feeds:
-	rm b2w
-	rm talkshow
-	rm hypercritical
-	rm buildanalyze
-	rm afterdark
+	rm feeds/*
 
 clean-merged-feed:
 	rm public/shows.json
