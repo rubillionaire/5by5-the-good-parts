@@ -24,7 +24,7 @@
     "watchify": "^4.0.0"
   },
   "gh-pages-deploy": {
-    "static-path": "public",
+    "staticpath": "public",
     "prep": [
       "bundle-javascript"
     ]
