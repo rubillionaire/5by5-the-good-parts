@@ -4,13 +4,29 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "bundle-javascript": "browserify ui.js > public/bundle.js",
+    "bundle-javascript:watch": "watchify ui.js -o public/bundle.js",
+    "dev": "npm run bundle-javascript:watch",
+    "deploy": "gh-pages-deploy"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async": "^3.2.2",
+    "choo": "^7.1.0",
     "entities": "^3.0.1",
     "fast-xml-parser": "^4.0.0-beta.8",
     "xml2js": "^0.4.23"
+  },
+  "devDependencies": {
+    "browserify": "^17.0.0",
+    "gh-pages-deploy": "^0.5.1",
+    "watchify": "^4.0.0"
+  },
+  "gh-pages-deploy": {
+    "static-path": "public",
+    "prep": [
+      "bundle-javascript"
+    ]
   }
 }
