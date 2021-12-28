@@ -1,0 +1,45 @@
+#!/usr/bin/env node
+
+const fs = require( 'fs' )
+const path = require( 'path' )
+const entities = require( 'entities' )
+const xml2js = require( 'xml2js' )
+const async = require( 'async' )
+
+const files = [
+  'afterdark',
+  'b2w',
+  'buildanalyze',
+  'hypercritical',
+  'talkshow'
+]
+
+async.map( files, filesToShows, handleShows )
+
+function filesToShows ( file, callback ) {
+  const feed = fs.readFileSync( path.join(__dirname, file) ).toString()
+  xml2js.parseString( feed, { noValidation: true }, function ( err, d ) {
+    d.rss.channel[ 0 ].item = d.rss.channel[ 0 ].item.map( function ( show ) {
+      show.title[ 0 ] = `${ file } - ${ show.title[ 0 ] }`
+      return show
+    } )
+    callback( err, d.rss.channel[ 0 ].item )
+  } )
+}
+
+function handleShows ( err, shows ) {
+  shows = shows
+    .reduce( function ( prev, curr ) {
+      return prev.concat( curr )
+    }, [] )
+    .sort( function ( a, b ) {
+      const ad = new Date( a.pubDate[ 0 ] )
+      const bd = new Date( b.pubDate[ 0 ] )
+      return ad - bd
+    } )
+
+  fs.writeFileSync(
+    path.join(__dirname, '..', 'public', 'shows.json'),
+    JSON.stringify( shows, null, 2 )
+  )
+}

@@ -10,7 +10,7 @@ deploy: build
 	npm run deploy
 
 public/shows.json:
-	node make-shows-feed.js
+	./feeds/make-shows-feed
 
 dl-feeds: feeds/talkshow feeds/hypercritical feeds/buildanalyze feeds/afterdark feeds/b2w
 
@@ -32,7 +32,7 @@ feeds/b2w:
 clean-source-feeds:
 	rm feeds/*
 
-clean-merged-feed:
+clean-shows-feed:
 	rm public/shows.json
 
 clean-built-javascript:
