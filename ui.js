@@ -13,6 +13,7 @@ app.mount('#app')
 function showStore (state, emitter) {
   state.shows = {
     episodes: [],
+    channels: [],
   }
 
   let frozenState = window.localStorage.getItem('state')
@@ -20,8 +21,9 @@ function showStore (state, emitter) {
   fetch('shows.json').then((feed) => {
     return feed.json()
   })
-    .then(function (episodes){
+    .then(function (episodes) {
       state.shows.episodes = episodes.map((d) => {
+        // prep show shape for show list
         d.id = showId(showTitleEp(d))
         d.showName = showTitleEp(d).showName
         d.episode = showTitleEp(d).episode
@@ -37,8 +39,49 @@ function showStore (state, emitter) {
         d.playOnOpen = false
         return d
       })
+
+      state.shows.channels = episodes.map((d) => {
+          return {
+            showName: showTitleEp(d).showName,
+            image: d['itunes:image'][0].$.href,
+          }
+        })
+        .filter(uniqueArray(compareChannelNames))
+        .sort((a, b) => {
+          if (a.showName > b.showName) {
+            return 1
+          }
+          if (a.showName < b.showName) {
+            return -1
+          }
+          return 0
+        })
+
       render()
     })
+
+  // are two channels the same?
+  function compareChannelNames (a, b) {
+    return a.showName === b.showName
+  }
+  function uniqueArray (comparator) {
+    const unique = []
+    return function (checkUniqueValue, index) {
+      const valuesIncluded = unique.filter(function (uniqueValue) {
+        return comparator(uniqueValue, checkUniqueValue)
+      })
+      if (valuesIncluded.length === 0) {
+        // value does not exist in unique, allow it to
+        // pass through
+        unique.push(checkUniqueValue)
+        return true
+      }
+      else {
+        // value is already included
+        return false
+      }
+    }
+  }
 
   emitter.on('show:toggle-drawer', (showId) => {
     console.log('store:show:toggle-drawer', showId)
@@ -91,6 +134,11 @@ function showStore (state, emitter) {
     if (latestId) {
       document.getElementById(latestId).scrollIntoView(true)
     }
+  })
+
+  emitter.on('filter-bar:toggle-channel', (channel) => {
+    console.log('filter-bar:toggle-channel')
+    console.log(channel)
   })
 
   function render () {
@@ -259,6 +307,52 @@ class ShowList extends Component {
   }
 }
 
+class FilterBar extends Component {
+  constructor (name, state, emit) {
+    super(name)
+    this.state = state
+    this.emit = emit
+    this.local = {
+      channels: []
+    }
+    this.buttonTextMap = {
+      'afterdark': 'ad',
+      'b2w': 'bw',
+      'buildanalyze': 'ba',
+      'hypercritical': 'hc',
+      'talkshow': 'ts',
+    }
+  }
+  createElement () {
+    this.local.channels = this.state.shows.channels
+    return html`
+      <div class="filter-bar">
+        <div class="filter-bar-row">
+          ${this.state.shows.channels.map((channel) => {
+            let text = this.buttonTextMap[channel.showName]
+            if (!text) text = channel.showName
+            return html`
+              <button
+                class="filter-bar-button"
+                onclick=${this.filterShowList.bind(this, channel)}>${text}</button>
+            `
+          })}
+        </div>
+      </div>
+    `
+  }
+  update () {
+    if (this.local.channels.length !== this.state.shows.channels.length) {
+      this.local.channels = this.state.shows.channels
+      return true
+    }
+    return false
+  }
+  filterShowList (channel) {
+    this.emit('filter-bar:toggle-channel', channel)
+  }
+}
+
 class ActionBar extends Component {
   constructor (name, state, emit) {
     super(name)
@@ -268,9 +362,11 @@ class ActionBar extends Component {
   createElement () {
     return html`
       <div class="action-bar">
-        <button
-          class="action-bar-button"
-          onclick=${this.scrollToLatest.bind(this)}>latest</button>
+        <div class="action-bar-row">
+          <button
+            class="action-bar-button"
+            onclick=${this.scrollToLatest.bind(this)}>latest</button>
+        </div>
       </div>
     `
   }
@@ -286,6 +382,7 @@ function mainView (state, emit) {
   console.log('main view')
   return html`
     <div id="app">
+      ${state.cache(FilterBar, 'filter-bar').render()}
       ${state.cache(ShowList, 'show-list').render()}
       ${state.cache(ActionBar, 'action-bar').render()}
     </div>

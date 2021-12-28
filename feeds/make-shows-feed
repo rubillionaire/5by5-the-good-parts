@@ -32,6 +32,18 @@ function handleShows ( err, shows ) {
     .reduce( function ( prev, curr ) {
       return prev.concat( curr )
     }, [] )
+    .map( function ( show, index ) {
+      delete show.link
+      delete show.author
+      delete show.description
+      delete show[ 'itunes:author' ]
+      delete show[ 'itunes:duration' ]
+      delete show[ 'itunes:subtitle' ]
+      delete show[ 'itunes:summary' ]
+      delete show[ 'itunes:keywords' ]
+      delete show[ 'atom:link' ]
+      return show
+    } )
     .sort( function ( a, b ) {
       const ad = new Date( a.pubDate[ 0 ] )
       const bd = new Date( b.pubDate[ 0 ] )
@@ -40,6 +52,6 @@ function handleShows ( err, shows ) {
 
   fs.writeFileSync(
     path.join(__dirname, '..', 'public', 'shows.json'),
-    JSON.stringify( shows, null, 2 )
+    JSON.stringify( shows )
   )
 }
