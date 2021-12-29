@@ -38,6 +38,26 @@ li {
   width: 100%;
 }
 
+.show-item-ad {
+  background-color: #ffef001c;
+}
+
+.show-item-bw {
+  background-color: #ffa5001c;
+}
+
+.show-item-ba {
+  background-color: #f447651c;
+}
+
+.show-item-hc {
+  background-color: #0cfd0c1c;
+}
+
+.show-item-ts {
+  background-color: #0070ff1c;
+}
+
 .show-item-header {
   cursor: pointer;
   display: flex;
@@ -140,12 +160,10 @@ li {
 
 .filter-ad {
   background-color: #ffef00;
-  /*color: #736b00;*/
 }
 
 .filter-bw {
   background-color: #ffa500;
-  /*color: #664200;*/
 }
 
 .filter-ba {
@@ -153,7 +171,7 @@ li {
 }
 
 .filter-hc {
-  background-color: lime;
+  background-color: #0cfd0c;
 }
 
 .filter-ts {
@@ -183,4 +201,5 @@ li {
 .action-bar-button {
   color: white;
   background-color: black;
+  font-weight: bold;
 }

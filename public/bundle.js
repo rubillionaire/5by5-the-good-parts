@@ -2559,10 +2559,10 @@ function showStore (state, emitter) {
     return response.json()
   })
     .then(function (feed) {
-      const channelName = (showName) => {
+      const channelForName = (showName) => {
         for (var i = 0; i < feed.channels.length; i++) {
           if (feed.channels[i].file === showName) {
-            return feed.channels[i].showName
+            return feed.channels[i]
           }
         }
       }
@@ -2570,7 +2570,7 @@ function showStore (state, emitter) {
         const { showName, episode } = showTitleEp(d)
         // prep show shape for show list
         d.id = showId({ showName, episode })
-        d.showName = channelName(showName)
+        d.channel = channelForName(showName)
         d.episode = episode
         // state of the show in the app
         if (frozenState && frozenState[d.id]) {
@@ -2709,11 +2709,11 @@ class ShowItem extends Component {
     this.local.lastPlayed = this.show.lastPlayed
 
     return html`
-      <div class="show-item" id=${this.show.id}>
+      <div class="show-item show-item-${this.show.channel.abbreviation}" id=${this.show.id}>
         <hgroup class="show-item-header">
           <header class="show-item-image" style="background-image:url('${this.show['itunes:image'][0].$.href}')"></header>
           <header class="show-item-meta" onclick=${this.toggleDrawer.bind(this)}>
-            <h3 class="show-item-name">${ this.show.showName } - e${ this.show.episode }</h3>
+            <h3 class="show-item-name">${ this.show.channel.showName } - e${ this.show.episode }</h3>
             <h1 class="show-item-title">${ this.showTitle(this.show) }</h1>
             <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate[0]).toDateString())}</h4>
             <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.lastPlayed ? false : true})}">last played ${ this.show.lastPlayed ? this.show.lastPlayed : '' }</h4>
