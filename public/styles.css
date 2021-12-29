@@ -5,6 +5,14 @@ body {
   font-family: helvetica;
   --max-width: 500px;
   --filter-bar-height: 0px;
+  background: linear-gradient(
+    to right,
+    #ffef001c,
+    #ffa5001c,
+    #f447651c,
+    #0cfd0c1c,
+    #0070ff1c
+  );
 }
 
 ul {
@@ -22,6 +30,10 @@ button {
   font-weight: bold;
 }
 
+a {
+  color: black;
+}
+
 #app {
   width: 100%;
   height: 100vh;
@@ -30,10 +42,10 @@ button {
 }
 
 .show-list {
-  scroll-margin-top: var(--filter-bar-height);
   margin-top: var(--filter-bar-height);
   width: 100%;
   overflow-y: scroll;
+  background: white;
 }
 
 .show-list-item {
@@ -77,15 +89,37 @@ button {
   padding-bottom: 1em;
 }
 
-.show-item-image {
-  width: 100px;
-  height: 100px;
-  background-size: cover;
+.show-item-mark {
+  padding: 0 1em;
+  flex-grow: 0;
 }
 
+.show-item-mark-text {
+  font-size: 2.3em;
+  line-height: 1em;
+  margin: 0;
+  text-align: center;
+}
+
+.show-item-ad .show-item-mark-text {
+  color: #ffef00;
+}
+.show-item-bw .show-item-mark-text {
+  color: #ffa500;
+}
+.show-item-ba .show-item-mark-text {
+  color: #f44765;
+}
+.show-item-hc .show-item-mark-text {
+  color: #0cfd0c;
+}
+.show-item-ts .show-item-mark-text {
+  color: #0070ff;
+} 
+
 .show-item-meta {
-  padding: 0 1em 1em 1em;
-  width: calc(100% - 2em - 100px);
+  padding: 0 1em 1em 0 0.4em;
+  flex-grow: 1;
 }
 
 .show-item-name,

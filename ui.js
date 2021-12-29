@@ -10,6 +10,48 @@ app.route('/5by5-archive', mainView)
 app.route('/5by5-archive/', mainView)
 app.mount('#app')
 
+function localState () {
+  const showKey = (show) => {
+    return `show!${show.id}`
+  }
+  const channelKey = (channel) => {
+    return `channel!${channel.showName}`
+  }
+
+  return {
+    getShow,
+    getChannel,
+    saveShow,
+    saveChannel,
+  }
+
+  function getAndParse (key) {
+    const item = window.localStorage.getItem(key)
+    if (typeof item !== 'string') return null
+    return JSON.parse(item)
+  }
+
+  function getShow (show) {
+    return getAndParse(showKey(show))
+  }
+
+  function getChannel (channel) {
+    return getAndParse(channelKey(channel))
+  }
+
+  function saveKeyValue (key, value) {
+    window.localStorage.setItem(key, JSON.stringify(value))
+  }
+
+  function saveShow (show) {
+    saveKeyValue(showKey(show), show.componentState)
+  }
+
+  function saveChannel (channel) {
+    saveKeyValue(channelKey(channel), channel.componentState)
+  }
+}
+
 function showStore (state, emitter) {
   state.playlist = {
     shows: [],
@@ -17,8 +59,8 @@ function showStore (state, emitter) {
     tick: 0
   }
 
-  let frozenState = window.localStorage.getItem('state')
-  if (frozenState) frozenState = JSON.parse(frozenState)
+  const local = localState()
+
   fetch('shows.json').then((response) => {
     return response.json()
   })
@@ -30,29 +72,41 @@ function showStore (state, emitter) {
           }
         }
       }
-      state.playlist.shows = feed.shows.map((d) => {
-        const { showName, episode } = showTitleEp(d)
+      state.playlist.shows = feed.shows.map((show) => {
+        const { showName, episode } = showTitleEp(show)
         // prep show shape for show list
-        d.id = showId({ showName, episode })
-        d.channel = channelForName(showName)
-        d.episode = episode
+        show.id = showId({ showName, episode })
+        show.channel = channelForName(showName)
+        show.episode = episode
         // state of the show in the app
-        if (frozenState && frozenState[d.id]) {
-          d.lastPlayed = frozenState[d.id].lastPlayed
-          d.drawerOpen = frozenState[d.id].drawerOpen
+        const localShowState = local.getShow(show)
+        if (localShowState) {
+          show.componentState = localShowState
         }
         else {
-          d.lastPlayed = undefined
-          d.drawerOpen = false
+          show.componentState = {
+            lastPlayed: null,
+            drawerOpen: false,
+          }
+          local.saveShow(show)
         }
-        d.playOnOpen = false
-        return d
+        show.playOnOpen = false
+        return show
       })
 
       state.playlist.channels = feed.channels
         .map((channel) => {
           // default app state
-          channel.displayInPlaylist = true
+          const localChannelState = local.getChannel(channel)
+          if (localChannelState) {
+            channel.componentState = localChannelState
+          }
+          else {
+            channel.componentState = {
+              displayInPlaylist: true
+            }
+            local.saveChannel(channel)
+          }
           return channel
         })
         .sort((a, b) => {
@@ -72,7 +126,8 @@ function showStore (state, emitter) {
     console.log('store:show:toggle-drawer', showId)
     for (var i = 0; i < state.playlist.shows.length; i++) {
       if (state.playlist.shows[i].id === showId) {
-        state.playlist.shows[i].drawerOpen = !state.playlist.shows[i].drawerOpen
+        state.playlist.shows[i].componentState.drawerOpen = !state.playlist.shows[i].componentState.drawerOpen
+        local.saveShow(state.playlist.shows[i])
         state.playlist.shows[i].playOnOpen = false
         break;
       }
@@ -86,11 +141,13 @@ function showStore (state, emitter) {
     let nextShowIndex = null
     for (var i = 0; i < state.playlist.shows.length; i++) {
       if (state.playlist.shows[i].id === showId) {
-        state.playlist.shows[i].drawerOpen = false
+        state.playlist.shows[i].componentState.drawerOpen = false
+        local.saveShow(state.playlist.shows[i])
         nextShowIndex = i + 1
       }
       if (i === nextShowIndex) {
-        state.playlist.shows[i].drawerOpen = true
+        state.playlist.shows[i].componentState.drawerOpen = true
+        local.saveShow(state.playlist.shows[i])
         state.playlist.shows[i].playOnOpen = true
       }
     }
@@ -101,7 +158,8 @@ function showStore (state, emitter) {
     console.log('store:show:set-last-played', showId, lastPlayed)
     for (var i = 0; i < state.playlist.shows.length; i++) {
       if (state.playlist.shows[i].id === showId) {
-        state.playlist.shows[i].lastPlayed = lastPlayed
+        state.playlist.shows[i].componentState.lastPlayed = lastPlayed
+        local.saveShow(state.playlist.shows[i])
         break;
       }
     }
@@ -112,13 +170,13 @@ function showStore (state, emitter) {
     console.log('store:action-bar:scroll-to-latest')
     let latestId;
     for (var i = 0; i < state.playlist.shows.length; i++) {
-      if (state.playlist.shows[i].lastPlayed) {
+      if (state.playlist.shows[i].componentState.lastPlayed) {
         latestId = state.playlist.shows[i].id
       }
     }
     if (latestId) {
       // scroll to latest
-      let filterBarHeight =0
+      let filterBarHeight = 0
       const filterBarHeightString = document.body.style.getPropertyValue('--filter-bar-height')
       if (filterBarHeightString) {
         filterBarHeight = parseFloat(filterBarHeightString.slice(0,-2))
@@ -132,17 +190,17 @@ function showStore (state, emitter) {
     console.log('store:filter-bar:toggle-channel')
     console.log(toggleChannel)
     const channelsDisplayed = state.playlist.channels.filter((channel) => {
-      return channel.displayInPlaylist
+      return channel.componentState.displayInPlaylist
     })
     if (channelsDisplayed.length === state.playlist.channels.length) {
       // all shows are showing, isolate the one that
       // triggered this action
       state.playlist.channels = state.playlist.channels.map((channel) => {
         if (channel.showName === toggleChannel.showName) {
-          channel.displayInPlaylist = true
+          channel.componentState.displayInPlaylist = true
         }
         else {
-          channel.displayInPlaylist = false
+          channel.componentState.displayInPlaylist = false
         }
         return channel
       })
@@ -154,7 +212,7 @@ function showStore (state, emitter) {
       // the only displayed channel was selected
       // set all channels to be displayed
       state.playlist.channels = state.playlist.channels.map((channel) => {
-        channel.displayInPlaylist = true
+        channel.componentState.displayInPlaylist = true
         return channel
       })
     }
@@ -162,35 +220,22 @@ function showStore (state, emitter) {
       // no special case, just toggle the current channel
       state.playlist.channels = state.playlist.channels.map((channel) => {
         if (channel.showName === toggleChannel.showName) {
-          channel.displayInPlaylist = !channel.displayInPlaylist
+          channel.componentState.displayInPlaylist = !channel.componentState.displayInPlaylist
         }
         return channel
       })
     }
+    state.playlist.channels.forEach((channel) => local.saveChannel(channel))
     return render()
   })
 
   function render () {
     state.playlist.tick += 1
-    window.localStorage.setItem('state', JSON.stringify(freezeEpisodeState()))
     emitter.emit('render')
   }
 
-  function freezeEpisodeState () {
-    const frozen = {}
-    for (let i = 0; i < state.playlist.shows.length; i++) {
-      frozen[state.playlist.shows[i].id] = {
-        lastPlayed: state.playlist.shows[i].lastPlayed,
-        drawerOpen: state.playlist.shows[i].drawerOpen,
-      }
-    }
-    return frozen
-  }
-
   function showTitleEp (show) {
-    const path = typeof show.guid[0] === 'string'
-      ? show.guid[0].replace('http://5by5.tv/', '')
-      : show.guid[0]._.replace('http://5by5.tv/', '')
+    const path = show.guid.replace('http://5by5.tv/', '')
     let [ showName, episode ] = path.split('/')
     episode = episode.split('-')[0]
     return { showName, episode }
@@ -215,8 +260,8 @@ class ShowItem extends Component {
   createElement (show) {
     console.log('show-item:create')
     this.show = show
-    this.local.drawerOpen = this.show.drawerOpen
-    this.local.lastPlayed = this.show.lastPlayed
+    this.local.drawerOpen = this.show.componentState.drawerOpen
+    this.local.lastPlayed = this.show.componentState.lastPlayed
     this.local.displayInPlaylist = this.displayInPlaylist.call(this)
 
     const displayClass = this.local.displayInPlaylist
@@ -228,15 +273,17 @@ class ShowItem extends Component {
         class="show-item show-item-${this.show.channel.abbreviation} ${displayClass}"
         id=${this.show.id}>
         <hgroup class="show-item-header">
-          <header class="show-item-image" style="background-image:url('${this.show['itunes:image'][0].$.href}')"></header>
+          <header class="show-item-mark">
+            <h1 class="show-item-mark-text">${this.show.channel.abbreviation}</h1>
+          </header>
           <header class="show-item-meta" onclick=${this.toggleDrawer.bind(this)}>
             <h3 class="show-item-name">${ this.show.channel.showName } - e${ this.show.episode }</h3>
-            <h1 class="show-item-title">${ this.show.title[0] }</h1>
-            <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate[0]).toDateString())}</h4>
-            <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.lastPlayed ? false : true})}">last played ${ this.show.lastPlayed ? this.show.lastPlayed : '' }</h4>
+            <h1 class="show-item-title">${ this.show.title }</h1>
+            <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate).toDateString())}</h4>
+            <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.componentState.lastPlayed ? false : true})}">last played ${ this.show.componentState.lastPlayed ? this.show.componentState.lastPlayed : '' }</h4>
           </header>
         </hgroup>
-        ${ this.show.drawerOpen ? this.markupDrawer.call(this) : '' }
+        ${ this.show.componentState.drawerOpen ? this.markupDrawer.call(this) : '' }
       </div>
     `
   }
@@ -246,20 +293,20 @@ class ShowItem extends Component {
     })
     if (channels.length !== 1) return false
     const channel = channels[0]
-    this.show.channel.displayInPlaylist = channel.displayInPlaylist
-    return this.show.channel.displayInPlaylist
+    this.show.channel.componentState.displayInPlaylist = channel.componentState.displayInPlaylist
+    return this.show.channel.componentState.displayInPlaylist
   }
   markupDrawer () {
     console.log('drawer-markup')
     return html`
-      <div class="show-item-drawer ${ classList({ 'drawer-open': this.show.drawerOpen}) }">
+      <div class="show-item-drawer ${ classList({ 'drawer-open': this.show.componentState.drawerOpen}) }">
         <div class="show-item-player-container">
           ${this.show.playOnOpen
             ? this.markupAutoplayAudio.call(this)
             : this.markupDefaultAudio.call(this)}
         </div>
         <div class="show-item-notes">
-          ${raw(this.show['content:encoded'][0])}
+          ${raw(this.show.description)}
         </div>
         <div class="show-item-actions">
           <button
@@ -270,25 +317,27 @@ class ShowItem extends Component {
     `
   }
   markupDefaultAudio () {
+    console.log('markup-default-audio')
     return html`
       <audio controls 
         class="show-item-player"
         onended=${this.setLastPlayed.bind(this)}>
         <source
-          src="${this.show.enclosure[0].$.url}"
-          type="${this.show.enclosure[0].$.type}"
+          src="${this.show.media.url}"
+          type="${this.show.media.type}"
         />
       </audio>
     `
   }
   markupAutoplayAudio () {
+    console.log('markup-autoplay-audio')
     return html`
       <audio controls autoplay
         class="show-item-player"
         onended=${this.setLastPlayed.bind(this)}>
         <source
-          src="${this.show.enclosure[0].$.url}"
-          type="${this.show.enclosure[0].$.type}"
+          src="${this.show.media.url}"
+          type="${this.show.media.type}"
         />
       </audio>
     `
@@ -296,10 +345,12 @@ class ShowItem extends Component {
   update (show) {
     console.log('show-item:update')
     this.show = show
-    if (this.local.drawerOpen !== this.show.drawerOpen) {
+    if (this.local.drawerOpen) console.log('uhh')
+    if (this.local.drawerOpen !== this.show.componentState.drawerOpen) {
+      console.log('show-item:update:drawer-open')
       return true
     }
-    if (this.local.lastPlayed !== this.show.lastPlayed) {
+    if (this.local.lastPlayed !== this.show.componentState.lastPlayed) {
       return true
     }
     if (this.local.displayInPlaylist !== this.displayInPlaylist.call(this)) {
@@ -372,7 +423,7 @@ class FilterBar extends Component {
       <div class="filter-bar">
         <div class="filter-bar-row">
           ${this.state.playlist.channels.map((channel) => {
-            const colorClass = channel.displayInPlaylist
+            const colorClass = channel.componentState.displayInPlaylist
               ? ''
               : 'filter-bar-button-muted'
             return html`
@@ -403,7 +454,7 @@ class FilterBar extends Component {
       const selector = `button.filter-${this.state.playlist.channels[i].abbreviation}`
       const button = this.element.querySelector(selector)
       if (!button) return true
-      if (this.state.playlist.channels[i].displayInPlaylist) {
+      if (this.state.playlist.channels[i].componentState.displayInPlaylist) {
         button.classList.remove('filter-bar-button-muted')
       }
       else {

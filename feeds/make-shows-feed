@@ -58,6 +58,20 @@ function handleShows ( err, shows ) {
       delete show[ 'itunes:summary' ]
       delete show[ 'itunes:keywords' ]
       delete show[ 'atom:link' ]
+      show.title = show.title[0]
+      show.guid = typeof show.guid[0] === 'string'
+        ? show.guid[0]
+        : show.guid[0]._
+      show.pubDate = show.pubDate[0]
+      show.media = {
+        url: show.enclosure[0].$.url,
+        type: show.enclosure[0].$.type,
+      }
+      show.description = show['content:encoded'][0]
+      show.image = show['itunes:image'][0].$.href
+      delete show.enclosure
+      delete show['content:encoded']
+      delete show['itunes:image']
       return show
     } )
     .filter( function ( show ) {
@@ -65,13 +79,13 @@ function handleShows ( err, shows ) {
       // this captures the entire run of
       // hypercritical, build & analyze,
       // and the talk show
-      const date = new Date( show.pubDate[ 0 ] )
+      const date = new Date( show.pubDate )
       const year = date.getFullYear()
       return year <= 2012
     } )
     .sort( function ( a, b ) {
-      const ad = new Date( a.pubDate[ 0 ] )
-      const bd = new Date( b.pubDate[ 0 ] )
+      const ad = new Date( a.pubDate )
+      const bd = new Date( b.pubDate )
       return ad - bd
     } )
 
