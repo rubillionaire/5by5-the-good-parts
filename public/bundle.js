@@ -2987,6 +2987,7 @@ class FilterBar extends Component {
     document.body.style.setProperty('--filter-bar-height', `${bbox.height}px`)  
   }
   update () {
+    console.log('filter-bar:update')
     for (var i = 0; i < this.state.playlist.channels.length; i++) {
       const selector = `button.filter-${this.state.playlist.channels[i].abbreviation}`
       const button = this.element.querySelector(selector)

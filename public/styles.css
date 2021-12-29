@@ -85,8 +85,7 @@ a {
 .show-item-header {
   cursor: pointer;
   display: flex;
-  padding-top: 1em;
-  padding-bottom: 1em;
+  padding: 1.3em 0;
 }
 
 .show-item-mark {
@@ -118,7 +117,7 @@ a {
 } 
 
 .show-item-meta {
-  padding: 0 1em 1em 0 0.4em;
+  padding: 0 1em 1em 0.5em;
   flex-grow: 1;
 }
 
@@ -195,6 +194,7 @@ a {
   background-color: black;
   color: white;
   padding: 0 0.5em;
+  transition: background-color 0.28s linear;
 }
 
 .filter-ad {
