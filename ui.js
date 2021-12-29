@@ -56,7 +56,10 @@ function showStore (state, emitter) {
   state.playlist = {
     shows: [],
     channels: [],
-    tick: 0
+    tick: 0,
+    player: {
+      playing: { id: null },
+    },
   }
 
   const local = localState()
@@ -130,25 +133,6 @@ function showStore (state, emitter) {
         local.saveShow(state.playlist.shows[i])
         state.playlist.shows[i].playOnOpen = false
         break;
-      }
-    }
-    render()
-  })
-
-  emitter.on('show:play-next', (showId) => {
-    console.log('store:show:play-next')
-    // close the existing 
-    let nextShowIndex = null
-    for (var i = 0; i < state.playlist.shows.length; i++) {
-      if (state.playlist.shows[i].id === showId) {
-        state.playlist.shows[i].componentState.drawerOpen = false
-        local.saveShow(state.playlist.shows[i])
-        nextShowIndex = i + 1
-      }
-      if (i === nextShowIndex) {
-        state.playlist.shows[i].componentState.drawerOpen = true
-        local.saveShow(state.playlist.shows[i])
-        state.playlist.shows[i].playOnOpen = true
       }
     }
     render()
@@ -229,6 +213,11 @@ function showStore (state, emitter) {
     return render()
   })
 
+  emitter.on('show:play-show', (show) => {
+    state.playlist.player.playing = show
+    render()
+  })
+
   function render () {
     state.playlist.tick += 1
     emitter.emit('render')
@@ -273,7 +262,7 @@ class ShowItem extends Component {
         class="show-item show-item-${this.show.channel.abbreviation} ${displayClass}"
         id=${this.show.id}>
         <hgroup class="show-item-header">
-          <header class="show-item-mark">
+          <header class="show-item-mark" onclick=${this.toggleDrawer.bind(this)}>
             <h1 class="show-item-mark-text">${this.show.channel.abbreviation}</h1>
           </header>
           <header class="show-item-meta" onclick=${this.toggleDrawer.bind(this)}>
@@ -281,6 +270,11 @@ class ShowItem extends Component {
             <h1 class="show-item-title">${ this.show.title }</h1>
             <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate).toDateString())}</h4>
             <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.componentState.lastPlayed ? false : true})}">last played ${ this.show.componentState.lastPlayed ? this.show.componentState.lastPlayed : '' }</h4>
+          </header>
+          <header class="show-item-actions">
+            <button
+              class="show-item-toggle-play"
+              onclick=${this.playShow.bind(this)}>▶</button>
           </header>
         </hgroup>
         ${ this.show.componentState.drawerOpen ? this.markupDrawer.call(this) : '' }
@@ -300,46 +294,10 @@ class ShowItem extends Component {
     console.log('drawer-markup')
     return html`
       <div class="show-item-drawer ${ classList({ 'drawer-open': this.show.componentState.drawerOpen}) }">
-        <div class="show-item-player-container">
-          ${this.show.playOnOpen
-            ? this.markupAutoplayAudio.call(this)
-            : this.markupDefaultAudio.call(this)}
-        </div>
         <div class="show-item-notes">
           ${raw(this.show.description)}
         </div>
-        <div class="show-item-actions">
-          <button
-            class="show-item-button"
-            onclick=${this.playNext.bind(this)}>play next in list</button>
-        </div>
       </div>
-    `
-  }
-  markupDefaultAudio () {
-    console.log('markup-default-audio')
-    return html`
-      <audio controls 
-        class="show-item-player"
-        onended=${this.setLastPlayed.bind(this)}>
-        <source
-          src="${this.show.media.url}"
-          type="${this.show.media.type}"
-        />
-      </audio>
-    `
-  }
-  markupAutoplayAudio () {
-    console.log('markup-autoplay-audio')
-    return html`
-      <audio controls autoplay
-        class="show-item-player"
-        onended=${this.setLastPlayed.bind(this)}>
-        <source
-          src="${this.show.media.url}"
-          type="${this.show.media.type}"
-        />
-      </audio>
     `
   }
   update (show) {
@@ -358,14 +316,11 @@ class ShowItem extends Component {
     }
     return false
   }
-  playNext () {
-    this.emit('show:play-next', this.show.id)
-  }
   toggleDrawer () {
     this.emit('show:toggle-drawer', this.show.id)
   }
-  setLastPlayed () {
-    this.emit('show:set-last-played', this.show.id, (new Date()).toDateString())
+  playShow () {
+    this.emit('show:play-show', this.show)
   }
 }
 
@@ -469,6 +424,48 @@ class FilterBar extends Component {
   }
 }
 
+class Player extends Component {
+  constructor (name, state, emit) {
+    super(name)
+    this.state = state
+    this.emit = emit
+    this.local = this.state.components[name] = {
+      playing: { id: null }, /* show : { id, title, media : { url, type} } */
+    }
+  }
+  createElement () {
+    this.local.playing = this.state.playlist.player.playing
+    if (this.local.playing.id === null) {
+      return html`<div class="empty"></div>`
+    }
+    return html`
+      <div class="action-bar-player-container">
+        <audio 
+          controls
+          autoplay
+          class="action-bar-player"
+          onended=${this.setLastPlayed.bind(this)}>
+          <source
+            src="${this.local.playing.media.url}"
+            type="${this.local.playing.media.type}"
+          />
+        </audio>
+      </div>
+    `
+  }
+  update () {
+    if (this.local.playing.id !== this.state.playlist.player.playing.id) {
+      return true
+    }
+    else {
+      return false
+    }
+  }
+  setLastPlayed () {
+    this.emit('player:set-last-played', this.playing.id, (new Date()).toDateString())
+  }
+}
+
 class ActionBar extends Component {
   constructor (name, state, emit) {
     super(name)
@@ -479,6 +476,7 @@ class ActionBar extends Component {
     return html`
       <div class="action-bar">
         <div class="action-bar-row">
+          ${this.state.cache(Player, 'player').render()}
           <button
             class="action-bar-button"
             onclick=${this.scrollToLatest.bind(this)}>latest</button>
@@ -487,7 +485,7 @@ class ActionBar extends Component {
     `
   }
   update () {
-    return false
+    return true
   }
   scrollToLatest () {
     this.emit('action-bar:scroll-to-latest')

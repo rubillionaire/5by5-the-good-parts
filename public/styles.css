@@ -28,6 +28,10 @@ button {
   box-shadow: none;
   cursor: pointer;
   font-weight: bold;
+  color: white;
+  background-color: black;
+  padding: 0.5em 1em;
+  border-radius: 1em;
 }
 
 a {
@@ -117,7 +121,7 @@ a {
 } 
 
 .show-item-meta {
-  padding: 0 1em 1em 0.5em;
+  padding: 0 1em 0 0.5em;
   flex-grow: 1;
 }
 
@@ -144,7 +148,7 @@ a {
 
 .show-item-drawer {
   display: none;
-  padding: 1em 1em 3em 1em;
+  padding: 0 1em 3em 1em;
 }
 
 .show-item-drawer.drawer-open {
@@ -153,17 +157,6 @@ a {
 
 .show-item-notes li {
   margin-bottom:  0.3em;
-}
-
-.show-item-button,
-.action-bar-button {
-  padding: 0.5em 1em;
-  border-radius: 1em;
-}
-
-.show-item-button {
-  color: white;
-  background-color: black;
 }
 
 .filter-bar {
@@ -222,6 +215,7 @@ a {
 }
 
 .action-bar {
+  pointer-events: none;
   position: fixed;
   left: 0;
   bottom: 0;
@@ -230,18 +224,18 @@ a {
 }
 
 .action-bar-row {
+  pointer-events: none;
   position: relative;
   margin: 0 auto;
   width: 100%;
   max-width: var(--max-width);
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
   padding: 0.5em;
 }
 
-.action-bar-button {
-  color: white;
-  background-color: black;
+.action-bar-player {
+  pointer-events: all;
 }
