@@ -36,6 +36,11 @@ li {
 .show-item {
   border-top:  1px solid black;
   width: 100%;
+  display: block;
+}
+
+.show-item.visually-hidden {
+  display: none;
 }
 
 .show-item-ad {
@@ -176,6 +181,10 @@ li {
 
 .filter-ts {
   background-color: #0070ff;
+}
+
+.filter-bar-button-muted {
+  background-color: rgb(200, 200, 200);
 }
 
 .action-bar {

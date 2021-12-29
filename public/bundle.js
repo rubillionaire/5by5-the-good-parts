@@ -2585,7 +2585,13 @@ function showStore (state, emitter) {
         return d
       })
 
-      state.playlist.channels = feed.channels.sort((a, b) => {
+      state.playlist.channels = feed.channels
+        .map((channel) => {
+          // default app state
+          channel.displayInPlaylist = true
+          return channel
+        })
+        .sort((a, b) => {
           if (a.showName > b.showName) {
             return 1
           }
@@ -2658,9 +2664,46 @@ function showStore (state, emitter) {
     }
   })
 
-  emitter.on('filter-bar:toggle-channel', (channel) => {
+  emitter.on('filter-bar:toggle-channel', (toggleChannel) => {
     console.log('filter-bar:toggle-channel')
-    console.log(channel)
+    console.log(toggleChannel)
+    const channelsDisplayed = state.playlist.channels.filter((channel) => {
+      return channel.displayInPlaylist
+    })
+    if (channelsDisplayed.length === state.playlist.channels.length) {
+      // all shows are showing, isolate the one that
+      // triggered this action
+      state.playlist.channels = state.playlist.channels.map((channel) => {
+        if (channel.showName === toggleChannel.showName) {
+          channel.displayInPlaylist = true
+        }
+        else {
+          channel.displayInPlaylist = false
+        }
+        return channel
+      })
+    }
+    else if (
+      channelsDisplayed.length === 1 &&
+      channelsDisplayed[0].showName === toggleChannel.showName
+      ) {
+      // the only displayed channel was selected
+      // set all channels to be displayed
+      state.playlist.channels = state.playlist.channels.map((channel) => {
+        channel.displayInPlaylist = true
+        return channel
+      })
+    }
+    else {
+      // no special case, just toggle the current channel
+      state.playlist.channels = state.playlist.channels.map((channel) => {
+        if (channel.showName === toggleChannel.showName) {
+          channel.displayInPlaylist = !channel.displayInPlaylist
+        }
+        return channel
+      })
+    }
+    return render()
   })
 
   function render () {
@@ -2700,6 +2743,7 @@ class ShowItem extends Component {
     this.local = this.state.components[name] = {
       drawerOpen: false,
       lastPlayed: undefined,
+      displayInPlaylist: true,
     }
   }
   createElement (show) {
@@ -2707,14 +2751,21 @@ class ShowItem extends Component {
     this.show = show
     this.local.drawerOpen = this.show.drawerOpen
     this.local.lastPlayed = this.show.lastPlayed
+    this.local.displayInPlaylist = this.displayInPlaylist.call(this)
+
+    const displayClass = this.local.displayInPlaylist
+      ? ''
+      : 'visually-hidden'
 
     return html`
-      <div class="show-item show-item-${this.show.channel.abbreviation}" id=${this.show.id}>
+      <div
+        class="show-item show-item-${this.show.channel.abbreviation} ${displayClass}"
+        id=${this.show.id}>
         <hgroup class="show-item-header">
           <header class="show-item-image" style="background-image:url('${this.show['itunes:image'][0].$.href}')"></header>
           <header class="show-item-meta" onclick=${this.toggleDrawer.bind(this)}>
             <h3 class="show-item-name">${ this.show.channel.showName } - e${ this.show.episode }</h3>
-            <h1 class="show-item-title">${ this.showTitle(this.show) }</h1>
+            <h1 class="show-item-title">${ this.show.title[0] }</h1>
             <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate[0]).toDateString())}</h4>
             <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.lastPlayed ? false : true})}">last played ${ this.show.lastPlayed ? this.show.lastPlayed : '' }</h4>
           </header>
@@ -2722,6 +2773,15 @@ class ShowItem extends Component {
         ${ this.show.drawerOpen ? this.markupDrawer.call(this) : '' }
       </div>
     `
+  }
+  displayInPlaylist () {
+    const channels = this.state.playlist.channels.filter((channel) => {
+      return channel.showName === this.show.channel.showName
+    })
+    if (channels.length !== 1) return false
+    const channel = channels[0]
+    this.show.channel.displayInPlaylist = channel.displayInPlaylist
+    return this.show.channel.displayInPlaylist
   }
   markupDrawer () {
     console.log('drawer-markup')
@@ -2767,15 +2827,6 @@ class ShowItem extends Component {
       </audio>
     `
   }
-  playNext () {
-    this.emit('show:play-next', this.show.id)
-  }
-  toggleDrawer () {
-    this.emit('show:toggle-drawer', this.show.id)
-  }
-  setLastPlayed () {
-    this.emit('show:set-last-played', this.show.id, (new Date()).toDateString())
-  }
   update (show) {
     console.log('show-item:update')
     this.show = show
@@ -2787,8 +2838,14 @@ class ShowItem extends Component {
     }
     return false
   }
-  showTitle (show) {
-    return show.title[0].split(':').slice(1).join(':')
+  playNext () {
+    this.emit('show:play-next', this.show.id)
+  }
+  toggleDrawer () {
+    this.emit('show:toggle-drawer', this.show.id)
+  }
+  setLastPlayed () {
+    this.emit('show:set-last-played', this.show.id, (new Date()).toDateString())
   }
 }
 
@@ -2843,9 +2900,12 @@ class FilterBar extends Component {
       <div class="filter-bar">
         <div class="filter-bar-row">
           ${this.state.playlist.channels.map((channel) => {
+            const colorClass = channel.displayInPlaylist
+              ? ''
+              : 'filter-bar-button-muted'
             return html`
               <button
-                class="filter-bar-button filter-${channel.abbreviation}"
+                class="filter-bar-button filter-${channel.abbreviation} ${colorClass}"
                 onclick=${this.filterShowList.bind(this, channel)}>${channel.abbreviation}</button>
             `
           })}
@@ -2868,6 +2928,9 @@ class FilterBar extends Component {
   }
   update () {
     if (this.local.channels.length !== this.state.playlist.channels.length) {
+      return true
+    }
+    if (this.local.channels.map(d=>d.displayInPlaylist).join('') !== this.state.playlist.channels.map(d=>d.displayInPlaylist).join('')) {
       return true
     }
     return false
