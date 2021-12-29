@@ -191,7 +191,8 @@ function showStore (state, emitter) {
     const path = typeof show.guid[0] === 'string'
       ? show.guid[0].replace('http://5by5.tv/', '')
       : show.guid[0]._.replace('http://5by5.tv/', '')
-    const [ showName, episode ] = path.split('/')
+    let [ showName, episode ] = path.split('/')
+    episode = episode.split('-')[0]
     return { showName, episode }
   }
   function showId ({ showName, episode }) {
