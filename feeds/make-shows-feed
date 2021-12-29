@@ -6,23 +6,39 @@ const entities = require( 'entities' )
 const xml2js = require( 'xml2js' )
 const async = require( 'async' )
 
-const files = [
-  'afterdark',
-  'b2w',
-  'buildanalyze',
-  'hypercritical',
-  'talkshow'
+const channels = [
+  {
+    file: 'afterdark',
+    showName: 'after dark',
+    abbreviation: 'ad',
+  },
+  {
+    file: 'b2w',
+    showName: 'back to work',
+    abbreviation: 'bw',
+  },
+  {
+    file: 'buildanalyze',
+    showName: 'build and analyze',
+    abbreviation: 'ba',
+  },
+  {
+    file: 'hypercritical',
+    showName: 'hypercritical',
+    abbreviation: 'hc',
+  },
+  {
+    file: 'talkshow',
+    showName: 'the talk show',
+    abbreviation: 'ts',
+  },
 ]
 
-async.map( files, filesToShows, handleShows )
+async.map( channels, channelsToShows, handleShows )
 
-function filesToShows ( file, callback ) {
-  const feed = fs.readFileSync( path.join(__dirname, file) ).toString()
+function channelsToShows ( channel, callback ) {
+  const feed = fs.readFileSync( path.join(__dirname, channel.file) ).toString()
   xml2js.parseString( feed, { noValidation: true }, function ( err, d ) {
-    d.rss.channel[ 0 ].item = d.rss.channel[ 0 ].item.map( function ( show ) {
-      show.title[ 0 ] = `${ file } - ${ show.title[ 0 ] }`
-      return show
-    } )
     callback( err, d.rss.channel[ 0 ].item )
   } )
 }
@@ -52,6 +68,6 @@ function handleShows ( err, shows ) {
 
   fs.writeFileSync(
     path.join(__dirname, '..', 'public', 'shows.json'),
-    JSON.stringify( shows )
+    JSON.stringify( { shows, channels } )
   )
 }

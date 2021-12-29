@@ -2548,22 +2548,30 @@ app.route('/5by5-archive/', mainView)
 app.mount('#app')
 
 function showStore (state, emitter) {
-  state.shows = {
-    episodes: [],
+  state.playlist = {
+    shows: [],
     channels: [],
   }
 
   let frozenState = window.localStorage.getItem('state')
   if (frozenState) frozenState = JSON.parse(frozenState)
-  fetch('shows.json').then((feed) => {
-    return feed.json()
+  fetch('shows.json').then((response) => {
+    return response.json()
   })
-    .then(function (episodes) {
-      state.shows.episodes = episodes.map((d) => {
+    .then(function (feed) {
+      const channelName = (showName) => {
+        for (var i = 0; i < feed.channels.length; i++) {
+          if (feed.channels[i].file === showName) {
+            return feed.channels[i].showName
+          }
+        }
+      }
+      state.playlist.shows = feed.shows.map((d) => {
+        const { showName, episode } = showTitleEp(d)
         // prep show shape for show list
-        d.id = showId(showTitleEp(d))
-        d.showName = showTitleEp(d).showName
-        d.episode = showTitleEp(d).episode
+        d.id = showId({ showName, episode })
+        d.showName = channelName(showName)
+        d.episode = episode
         // state of the show in the app
         if (frozenState && frozenState[d.id]) {
           d.lastPlayed = frozenState[d.id].lastPlayed
@@ -2577,14 +2585,7 @@ function showStore (state, emitter) {
         return d
       })
 
-      state.shows.channels = episodes.map((d) => {
-          return {
-            showName: showTitleEp(d).showName,
-            image: d['itunes:image'][0].$.href,
-          }
-        })
-        .filter(uniqueArray(compareChannelNames))
-        .sort((a, b) => {
+      state.playlist.channels = feed.channels.sort((a, b) => {
           if (a.showName > b.showName) {
             return 1
           }
@@ -2597,35 +2598,12 @@ function showStore (state, emitter) {
       render()
     })
 
-  // are two channels the same?
-  function compareChannelNames (a, b) {
-    return a.showName === b.showName
-  }
-  function uniqueArray (comparator) {
-    const unique = []
-    return function (checkUniqueValue, index) {
-      const valuesIncluded = unique.filter(function (uniqueValue) {
-        return comparator(uniqueValue, checkUniqueValue)
-      })
-      if (valuesIncluded.length === 0) {
-        // value does not exist in unique, allow it to
-        // pass through
-        unique.push(checkUniqueValue)
-        return true
-      }
-      else {
-        // value is already included
-        return false
-      }
-    }
-  }
-
   emitter.on('show:toggle-drawer', (showId) => {
     console.log('store:show:toggle-drawer', showId)
-    for (var i = 0; i < state.shows.episodes.length; i++) {
-      if (state.shows.episodes[i].id === showId) {
-        state.shows.episodes[i].drawerOpen = !state.shows.episodes[i].drawerOpen
-        state.shows.episodes[i].playOnOpen = false
+    for (var i = 0; i < state.playlist.shows.length; i++) {
+      if (state.playlist.shows[i].id === showId) {
+        state.playlist.shows[i].drawerOpen = !state.playlist.shows[i].drawerOpen
+        state.playlist.shows[i].playOnOpen = false
         break;
       }
     }
@@ -2636,14 +2614,14 @@ function showStore (state, emitter) {
     console.log('store:show:play-next')
     // close the existing 
     let nextShowIndex = null
-    for (var i = 0; i < state.shows.episodes.length; i++) {
-      if (state.shows.episodes[i].id === showId) {
-        state.shows.episodes[i].drawerOpen = false
+    for (var i = 0; i < state.playlist.shows.length; i++) {
+      if (state.playlist.shows[i].id === showId) {
+        state.playlist.shows[i].drawerOpen = false
         nextShowIndex = i + 1
       }
       if (i === nextShowIndex) {
-        state.shows.episodes[i].drawerOpen = true
-        state.shows.episodes[i].playOnOpen = true
+        state.playlist.shows[i].drawerOpen = true
+        state.playlist.shows[i].playOnOpen = true
       }
     }
     render()
@@ -2651,9 +2629,9 @@ function showStore (state, emitter) {
 
   emitter.on('show:set-last-played', (showId, lastPlayed) => {
     console.log('store:show:set-last-played', showId, lastPlayed)
-    for (var i = 0; i < state.shows.episodes.length; i++) {
-      if (state.shows.episodes[i].id === showId) {
-        state.shows.episodes[i].lastPlayed = lastPlayed
+    for (var i = 0; i < state.playlist.shows.length; i++) {
+      if (state.playlist.shows[i].id === showId) {
+        state.playlist.shows[i].lastPlayed = lastPlayed
         break;
       }
     }
@@ -2663,13 +2641,20 @@ function showStore (state, emitter) {
   emitter.on('action-bar:scroll-to-latest', () => {
     console.log('store:action-bar:scroll-to-latest')
     let latestId;
-    for (var i = 0; i < state.shows.episodes.length; i++) {
-      if (state.shows.episodes[i].lastPlayed) {
-        latestId = state.shows.episodes[i].id
+    for (var i = 0; i < state.playlist.shows.length; i++) {
+      if (state.playlist.shows[i].lastPlayed) {
+        latestId = state.playlist.shows[i].id
       }
     }
     if (latestId) {
-      document.getElementById(latestId).scrollIntoView(true)
+      // scroll to latest
+      let filterBarHeight =0
+      const filterBarHeightString = document.body.style.getPropertyValue('--filter-bar-height')
+      if (filterBarHeightString) {
+        filterBarHeight = parseFloat(filterBarHeightString.slice(0,-2))
+      }
+      const scrollToBbox = document.getElementById(latestId).getBoundingClientRect()
+      window.scrollTo(scrollToBbox.left, scrollToBbox.top + window.scrollY - filterBarHeight)
     }
   })
 
@@ -2685,10 +2670,10 @@ function showStore (state, emitter) {
 
   function freezeEpisodeState () {
     const frozen = {}
-    for (let i = 0; i < state.shows.episodes.length; i++) {
-      frozen[state.shows.episodes[i].id] = {
-        lastPlayed: state.shows.episodes[i].lastPlayed,
-        drawerOpen: state.shows.episodes[i].drawerOpen,
+    for (let i = 0; i < state.playlist.shows.length; i++) {
+      frozen[state.playlist.shows[i].id] = {
+        lastPlayed: state.playlist.shows[i].lastPlayed,
+        drawerOpen: state.playlist.shows[i].drawerOpen,
       }
     }
     return frozen
@@ -2720,6 +2705,8 @@ class ShowItem extends Component {
   createElement (show) {
     console.log('show-item:create')
     this.show = show
+    this.local.drawerOpen = this.show.drawerOpen
+    this.local.lastPlayed = this.show.lastPlayed
 
     return html`
       <div class="show-item" id=${this.show.id}>
@@ -2793,11 +2780,9 @@ class ShowItem extends Component {
     console.log('show-item:update')
     this.show = show
     if (this.local.drawerOpen !== this.show.drawerOpen) {
-      this.local.drawerOpen = this.show.drawerOpen
       return true
     }
     if (this.local.lastPlayed !== this.show.lastPlayed) {
-      this.local.lastPlayed = this.show.lastPlayed
       return true
     }
     return false
@@ -2813,16 +2798,16 @@ class ShowList extends Component {
     this.state = state
     this.emit = emit
     this.local = this.state.components[name] = {
-      episodes: []
+      shows: []
     }
   }
   createElement () {
     console.log('show-list:create')
-    this.local.episodes = this.state.shows.episodes
+    this.local.shows = this.state.playlist.shows
     return html`
       <div class="show-list">
         
-        ${this.state.shows.episodes.map((show, id) => {
+        ${this.state.playlist.shows.map((show, id) => {
           return html`
             <li class="show-list-item">
               ${this.state.cache(ShowItem, `show-list-${id}`).render(show)}
@@ -2835,8 +2820,7 @@ class ShowList extends Component {
   }
   update () {
     console.log('show-list:update')
-    if (this.local.episodes.length !== this.state.shows.episodes.length) {
-      this.local.episodes = this.state.shows.episodes
+    if (this.local.shows.length !== this.state.playlist.shows.length) {
       return true
     }
     console.log('show-list:update:no-update')
@@ -2852,35 +2836,38 @@ class FilterBar extends Component {
     this.local = {
       channels: []
     }
-    this.buttonTextMap = {
-      'afterdark': 'ad',
-      'b2w': 'bw',
-      'buildanalyze': 'ba',
-      'hypercritical': 'hc',
-      'talkshow': 'ts',
-    }
   }
   createElement () {
-    this.local.channels = this.state.shows.channels
+    this.local.channels = this.state.playlist.channels
     return html`
       <div class="filter-bar">
         <div class="filter-bar-row">
-          ${this.state.shows.channels.map((channel) => {
-            let text = this.buttonTextMap[channel.showName]
-            if (!text) text = channel.showName
+          ${this.state.playlist.channels.map((channel) => {
             return html`
               <button
-                class="filter-bar-button"
-                onclick=${this.filterShowList.bind(this, channel)}>${text}</button>
+                class="filter-bar-button filter-${channel.abbreviation}"
+                onclick=${this.filterShowList.bind(this, channel)}>${channel.abbreviation}</button>
             `
           })}
         </div>
       </div>
     `
   }
+  load () {
+    console.log('filter-bar:set-height')
+
+    const bbox = this.element.getBoundingClientRect()
+    if (bbox.height < 40) {
+      // bbox should be at least 40px, this is the height of
+      // a button that is the element. queue another attempt
+      // in 100ms to see if the button has been rendered
+      return setTimeout(this.load.bind(this), 100)
+    }
+
+    document.body.style.setProperty('--filter-bar-height', `${bbox.height}px`)  
+  }
   update () {
-    if (this.local.channels.length !== this.state.shows.channels.length) {
-      this.local.channels = this.state.shows.channels
+    if (this.local.channels.length !== this.state.playlist.channels.length) {
       return true
     }
     return false

@@ -4,6 +4,7 @@ body {
   font-size: 16px;
   font-family: helvetica;
   --max-width: 500px;
+  --filter-bar-height: 0px;
 }
 
 ul {
@@ -22,6 +23,8 @@ li {
 }
 
 .show-list {
+  scroll-margin-top: var(--filter-bar-height);
+  margin-top: var(--filter-bar-height);
   width: 100%;
   overflow-y: scroll;
 }
@@ -117,21 +120,44 @@ li {
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
-  padding: 1em;
+  padding: 0.5em 1em;
 }
 
 .filter-bar-button {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   text-align: center;
   border: none;
   box-shadow: none;
   border-radius: 50%;
   cursor: pointer;
-  margin: 0 1em;
+  margin: 0 0.5em;
   background-color: black;
   color: white;
-  padding: 0.5em;
+  padding: 0 0.5em;
+  font-weight: bold;
+}
+
+.filter-ad {
+  background-color: #ffef00;
+  /*color: #736b00;*/
+}
+
+.filter-bw {
+  background-color: #ffa500;
+  /*color: #664200;*/
+}
+
+.filter-ba {
+  background-color: #f44765;
+}
+
+.filter-hc {
+  background-color: lime;
+}
+
+.filter-ts {
+  background-color: #0070ff;
 }
 
 .action-bar {
@@ -151,7 +177,7 @@ li {
   justify-content: right;
   align-items: center;
   box-sizing: border-box;
-  padding: 1em;
+  padding: 0.5em;
 }
 
 .action-bar-button {
