@@ -60,6 +60,15 @@ function handleShows ( err, shows ) {
       delete show[ 'atom:link' ]
       return show
     } )
+    .filter( function ( show ) {
+      // only interested in shows before 2013
+      // this captures the entire run of
+      // hypercritical, build & analyze,
+      // and the talk show
+      const date = new Date( show.pubDate[ 0 ] )
+      const year = date.getFullYear()
+      return year <= 2012
+    } )
     .sort( function ( a, b ) {
       const ad = new Date( a.pubDate[ 0 ] )
       const bd = new Date( b.pubDate[ 0 ] )
