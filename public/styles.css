@@ -128,8 +128,15 @@ a {
 .show-item-toggle-drawer {
   font-size: 2em;
   background-color: transparent;
-  padding:  0 0.5em 0 0;
+  padding:  0 0.5em;
   line-height: 0.7em;
+  transition: transform 0.28s linear;
+  transform-origin: 50% 50%;
+  transform: rotate(0deg);
+}
+
+.show-item-toggle-drawer.animate-open {
+  transform: rotate(180deg);
 }
 
 .show-item-actions {

@@ -273,7 +273,7 @@ class ShowItem extends Component {
           </header>
           <header class="show-item-actions">
             <button
-              class="show-item-toggle-drawer"
+              class="show-item-toggle-drawer ${classList({'animate-open': this.local.drawerOpen})}"
               onclick=${this.toggleDrawer.bind(this)}>❋</button>
           </header>
         </hgroup>
