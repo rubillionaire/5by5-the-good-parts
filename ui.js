@@ -138,7 +138,7 @@ function showStore (state, emitter) {
     render()
   })
 
-  emitter.on('show:set-last-played', (showId, lastPlayed) => {
+  emitter.on('player:set-last-played', (showId, lastPlayed) => {
     console.log('store:show:set-last-played', showId, lastPlayed)
     for (var i = 0; i < state.playlist.shows.length; i++) {
       if (state.playlist.shows[i].id === showId) {
@@ -494,7 +494,7 @@ class Player extends Component {
     }
   }
   setLastPlayed () {
-    this.emit('player:set-last-played', this.show.id, (new Date()).toDateString())
+    this.emit('player:set-last-played', this.local.show.id, (new Date()).toDateString())
   }
 }
 
@@ -503,19 +503,37 @@ class ActionBar extends Component {
     super(name)
     this.state = state
     this.emit = emit
+    this.local = {
+      hasALastPlayed: false,
+    }
   }
   createElement () {
+    if (this.local.hasALastPlayed === false) {
+      const hasBeenPlayed = this.state.playlist.shows.filter((show) => {
+        return show.componentState.lastPlayed !== null
+      })
+      if (hasBeenPlayed.length > 0) {
+        this.local.hasALastPlayed = true
+      }
+    }
     return html`
       <div class="action-bar">
         <div class="action-bar-row">
           ${this.state.cache(Player, 'player').render()}
           <div class="action-bar-playist-position">
             ${this.state.playlist.player.show.id !== null
-              ? html`<button class="action-bar-button" onclick=${this.scrollToPlaying.bind(this)}>playing</button>`
+              ? html`<button
+                          class="action-bar-button"
+                          onclick=${this.scrollToPlaying.bind(this)}
+                        >playing</button>`
               : ''}
-            <button
-              class="action-bar-button"
-              onclick=${this.scrollToLatest.bind(this)}>latest</button>
+            ${this.local.hasALastPlayed
+              ? html`<button
+                          class="action-bar-button"
+                          onclick=${this.scrollToLatest.bind(this)}
+                        >latest</button>`
+              : ''}
+            
           </div>
         </div>
       </div>
