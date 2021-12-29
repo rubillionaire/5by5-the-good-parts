@@ -15,6 +15,13 @@ li {
   list-style: none;
 }
 
+button {
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
 #app {
   width: 100%;
   height: 100vh;
@@ -117,11 +124,8 @@ li {
 
 .show-item-button,
 .action-bar-button {
-  border: none;
-  box-shadow: none;
   padding: 0.5em 1em;
   border-radius: 1em;
-  cursor: pointer;
 }
 
 .show-item-button {
@@ -152,15 +156,11 @@ li {
   width: 40px;
   height: 40px;
   text-align: center;
-  border: none;
-  box-shadow: none;
   border-radius: 50%;
-  cursor: pointer;
   margin: 0 0.5em;
   background-color: black;
   color: white;
   padding: 0 0.5em;
-  font-weight: bold;
 }
 
 .filter-ad {
@@ -210,5 +210,4 @@ li {
 .action-bar-button {
   color: white;
   background-color: black;
-  font-weight: bold;
 }

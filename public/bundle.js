@@ -2540,7 +2540,7 @@ const html = require('choo/html')
 const raw = require('choo/html/raw')
 const Component = require('choo/component')
 
-const app = choo()
+const app = choo({ cache: 2000 })
 app.use(showStore)
 app.route('/', mainView)
 app.route('/5by5-archive', mainView)
@@ -2551,6 +2551,7 @@ function showStore (state, emitter) {
   state.playlist = {
     shows: [],
     channels: [],
+    tick: 0
   }
 
   let frozenState = window.localStorage.getItem('state')
@@ -2665,7 +2666,7 @@ function showStore (state, emitter) {
   })
 
   emitter.on('filter-bar:toggle-channel', (toggleChannel) => {
-    console.log('filter-bar:toggle-channel')
+    console.log('store:filter-bar:toggle-channel')
     console.log(toggleChannel)
     const channelsDisplayed = state.playlist.channels.filter((channel) => {
       return channel.displayInPlaylist
@@ -2707,6 +2708,7 @@ function showStore (state, emitter) {
   })
 
   function render () {
+    state.playlist.tick += 1
     window.localStorage.setItem('state', JSON.stringify(freezeEpisodeState()))
     emitter.emit('render')
   }
@@ -2836,6 +2838,9 @@ class ShowItem extends Component {
     if (this.local.lastPlayed !== this.show.lastPlayed) {
       return true
     }
+    if (this.local.displayInPlaylist !== this.displayInPlaylist.call(this)) {
+      return true
+    }
     return false
   }
   playNext () {
@@ -2855,12 +2860,15 @@ class ShowList extends Component {
     this.state = state
     this.emit = emit
     this.local = this.state.components[name] = {
-      shows: []
+      shows: [],
+      tick: 0,
     }
   }
   createElement () {
     console.log('show-list:create')
     this.local.shows = this.state.playlist.shows
+    this.local.tick = this.state.playlist.tick
+
     return html`
       <div class="show-list">
         
@@ -2880,6 +2888,9 @@ class ShowList extends Component {
     if (this.local.shows.length !== this.state.playlist.shows.length) {
       return true
     }
+    if (this.local.tick !== this.state.playlist.tick) {
+      return true
+    }
     console.log('show-list:update:no-update')
     return false
   }
@@ -2890,12 +2901,9 @@ class FilterBar extends Component {
     super(name)
     this.state = state
     this.emit = emit
-    this.local = {
-      channels: []
-    }
   }
   createElement () {
-    this.local.channels = this.state.playlist.channels
+    console.log('filter-bar:create')
     return html`
       <div class="filter-bar">
         <div class="filter-bar-row">
@@ -2927,11 +2935,16 @@ class FilterBar extends Component {
     document.body.style.setProperty('--filter-bar-height', `${bbox.height}px`)  
   }
   update () {
-    if (this.local.channels.length !== this.state.playlist.channels.length) {
-      return true
-    }
-    if (this.local.channels.map(d=>d.displayInPlaylist).join('') !== this.state.playlist.channels.map(d=>d.displayInPlaylist).join('')) {
-      return true
+    for (var i = 0; i < this.state.playlist.channels.length; i++) {
+      const selector = `button.filter-${this.state.playlist.channels[i].abbreviation}`
+      const button = this.element.querySelector(selector)
+      if (!button) return true
+      if (this.state.playlist.channels[i].displayInPlaylist) {
+        button.classList.remove('filter-bar-button-muted')
+      }
+      else {
+        button.classList.add('filter-bar-button-muted')
+      }
     }
     return false
   }
