@@ -2799,10 +2799,10 @@ class ShowItem extends Component {
         class="show-item show-item-${this.show.channel.abbreviation} ${displayClass}"
         id=${this.show.id}>
         <hgroup class="show-item-header">
-          <header class="show-item-mark" onclick=${this.toggleDrawer.bind(this)}>
+          <header class="show-item-mark" onclick=${this.playShow.bind(this)}>
             <h1 class="show-item-mark-text">${this.show.channel.abbreviation}</h1>
           </header>
-          <header class="show-item-meta" onclick=${this.toggleDrawer.bind(this)}>
+          <header class="show-item-meta" onclick=${this.playShow.bind(this)}>
             <h3 class="show-item-name">${ this.show.channel.showName } - e${ this.show.episode }</h3>
             <h1 class="show-item-title">${ this.show.title }</h1>
             <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate).toDateString())}</h4>
@@ -2810,8 +2810,8 @@ class ShowItem extends Component {
           </header>
           <header class="show-item-actions">
             <button
-              class="show-item-toggle-play"
-              onclick=${this.playShow.bind(this)}>▶</button>
+              class="show-item-toggle-drawer"
+              onclick=${this.toggleDrawer.bind(this)}>❋</button>
           </header>
         </hgroup>
         ${ this.show.componentState.drawerOpen ? this.markupDrawer.call(this) : '' }
@@ -2971,6 +2971,14 @@ class Player extends Component {
     }
   }
   createElement () {
+    if (this.local.playing.id !== null &&
+        this.local.playing.id !== this.state.playlist.player.playing.id) {
+      const oldAudio = this.element.querySelector('audio')
+      if (oldAudio) {
+        oldAudio.pause()
+        this.element.removeChild(oldAudio)
+      }
+    }
     this.local.playing = this.state.playlist.player.playing
     if (this.local.playing.id === null) {
       return html`<div class="empty"></div>`

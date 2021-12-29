@@ -104,21 +104,38 @@ a {
   text-align: center;
 }
 
-.show-item-ad .show-item-mark-text {
+.show-item-ad .show-item-mark-text,
+.show-item-ad .show-item-toggle-drawer {
   color: #ffef00;
 }
-.show-item-bw .show-item-mark-text {
+.show-item-bw .show-item-mark-text,
+.show-item-bw .show-item-toggle-drawer {
   color: #ffa500;
 }
-.show-item-ba .show-item-mark-text {
+.show-item-ba .show-item-mark-text,
+.show-item-ba .show-item-toggle-drawer {
   color: #f44765;
 }
-.show-item-hc .show-item-mark-text {
+.show-item-hc .show-item-mark-text,
+.show-item-hc .show-item-toggle-drawer {
   color: #0cfd0c;
 }
-.show-item-ts .show-item-mark-text {
+.show-item-ts .show-item-mark-text,
+.show-item-ts .show-item-toggle-drawer {
   color: #0070ff;
 } 
+
+.show-item-toggle-drawer {
+  font-size: 2em;
+  background-color: transparent;
+  padding:  0 0.5em 0 0;
+  line-height: 0.7em;
+}
+
+.show-item-actions {
+  display: flex;
+  align-items: top;
+}
 
 .show-item-meta {
   padding: 0 1em 0 0.5em;
