@@ -58,7 +58,7 @@ function handleShows ( err, shows ) {
       delete show[ 'itunes:summary' ]
       delete show[ 'itunes:keywords' ]
       delete show[ 'atom:link' ]
-      show.title = show.title[0]
+      show.title = show.title[0].split(':').slice(1).map(s=>s.trim()).join(' ')
       show.guid = typeof show.guid[0] === 'string'
         ? show.guid[0]
         : show.guid[0]._
