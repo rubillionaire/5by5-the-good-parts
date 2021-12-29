@@ -201,7 +201,7 @@ button {
   width: 100%;
   max-width: var(--max-width);
   display: flex;
-  justify-content: right;
+  justify-content: flex-end;
   align-items: center;
   box-sizing: border-box;
   padding: 0.5em;
