@@ -65,6 +65,9 @@ a {
 .show-item.visually-hidden {
   display: none;
 }
+.show-item.currently-playing {
+  background-color: white;
+}
 
 .show-item-ad {
   background-color: #ffef001c;
@@ -262,4 +265,12 @@ a {
 
 .action-bar-player {
   pointer-events: all;
+}
+
+.action-bar-playist-position {
+  pointer-events: all;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
 }

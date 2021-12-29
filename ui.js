@@ -58,7 +58,7 @@ function showStore (state, emitter) {
     channels: [],
     tick: 0,
     player: {
-      playing: { id: null },
+      show: { id: null },
     },
   }
 
@@ -160,15 +160,28 @@ function showStore (state, emitter) {
     }
     if (latestId) {
       // scroll to latest
-      let filterBarHeight = 0
-      const filterBarHeightString = document.body.style.getPropertyValue('--filter-bar-height')
-      if (filterBarHeightString) {
-        filterBarHeight = parseFloat(filterBarHeightString.slice(0,-2))
-      }
+      const filterBarHeight = getFilterBarHeight()
       const scrollToBbox = document.getElementById(latestId).getBoundingClientRect()
       window.scrollTo(scrollToBbox.left, scrollToBbox.top + window.scrollY - filterBarHeight)
     }
   })
+
+  emitter.on('action-bar:scroll-to-playing', () => {
+    console.log('store:action-bar:scroll-to-playing')
+    const playingId = state.playlist.player.show.id
+    const filterBarHeight = getFilterBarHeight()
+    const scrollToBbox = document.getElementById(playingId).getBoundingClientRect()
+    window.scrollTo(scrollToBbox.left, scrollToBbox.top + window.scrollY - filterBarHeight)
+  })
+
+  function getFilterBarHeight () {
+    let filterBarHeight = 0
+    const filterBarHeightString = document.body.style.getPropertyValue('--filter-bar-height')
+    if (filterBarHeightString) {
+      filterBarHeight = parseFloat(filterBarHeightString.slice(0,-2))
+    }
+    return filterBarHeight
+  }
 
   emitter.on('filter-bar:toggle-channel', (toggleChannel) => {
     console.log('store:filter-bar:toggle-channel')
@@ -214,7 +227,7 @@ function showStore (state, emitter) {
   })
 
   emitter.on('show:play-show', (show) => {
-    state.playlist.player.playing = show
+    state.playlist.player.show = show
     render()
   })
 
@@ -244,6 +257,7 @@ class ShowItem extends Component {
       drawerOpen: false,
       lastPlayed: undefined,
       displayInPlaylist: true,
+      currentlyPlaying: false,
     }
   }
   createElement (show) {
@@ -252,14 +266,16 @@ class ShowItem extends Component {
     this.local.drawerOpen = this.show.componentState.drawerOpen
     this.local.lastPlayed = this.show.componentState.lastPlayed
     this.local.displayInPlaylist = this.displayInPlaylist.call(this)
-
-    const displayClass = this.local.displayInPlaylist
-      ? ''
-      : 'visually-hidden'
+    this.local.currentlyPlaying = this.state.playlist.player.show.id === this.show.id
+    
+    const extraClasses = classList({
+      'visually-hidden': !this.local.displayInPlaylist,
+      'currently-playing': this.local.currentlyPlaying
+    })
 
     return html`
       <div
-        class="show-item show-item-${this.show.channel.abbreviation} ${displayClass}"
+        class="show-item show-item-${this.show.channel.abbreviation} ${extraClasses}"
         id=${this.show.id}>
         <hgroup class="show-item-header">
           <header class="show-item-mark" onclick=${this.playShow.bind(this)}>
@@ -312,6 +328,14 @@ class ShowItem extends Component {
       return true
     }
     if (this.local.displayInPlaylist !== this.displayInPlaylist.call(this)) {
+      return true
+    }
+    if (this.local.currentlyPlaying === false &&
+        this.show.id === this.state.playlist.player.show.id) {
+      return true
+    }
+    if (this.local.currentlyPlaying === true &&
+        this.show.id !== this.state.playlist.player.show.id) {
       return true
     }
     return false
@@ -430,20 +454,20 @@ class Player extends Component {
     this.state = state
     this.emit = emit
     this.local = this.state.components[name] = {
-      playing: { id: null }, /* show : { id, title, media : { url, type} } */
+      show: { id: null }, /* show : { id, title, media : { url, type} } */
     }
   }
   createElement () {
-    if (this.local.playing.id !== null &&
-        this.local.playing.id !== this.state.playlist.player.playing.id) {
+    if (this.local.show.id !== null &&
+        this.local.show.id !== this.state.playlist.player.show.id) {
       const oldAudio = this.element.querySelector('audio')
       if (oldAudio) {
         oldAudio.pause()
         this.element.removeChild(oldAudio)
       }
     }
-    this.local.playing = this.state.playlist.player.playing
-    if (this.local.playing.id === null) {
+    this.local.show = this.state.playlist.player.show
+    if (this.local.show.id === null) {
       return html`<div class="empty"></div>`
     }
     return html`
@@ -454,15 +478,15 @@ class Player extends Component {
           class="action-bar-player"
           onended=${this.setLastPlayed.bind(this)}>
           <source
-            src="${this.local.playing.media.url}"
-            type="${this.local.playing.media.type}"
+            src="${this.local.show.media.url}"
+            type="${this.local.show.media.type}"
           />
         </audio>
       </div>
     `
   }
   update () {
-    if (this.local.playing.id !== this.state.playlist.player.playing.id) {
+    if (this.local.show.id !== this.state.playlist.player.show.id) {
       return true
     }
     else {
@@ -470,7 +494,7 @@ class Player extends Component {
     }
   }
   setLastPlayed () {
-    this.emit('player:set-last-played', this.playing.id, (new Date()).toDateString())
+    this.emit('player:set-last-played', this.show.id, (new Date()).toDateString())
   }
 }
 
@@ -485,9 +509,14 @@ class ActionBar extends Component {
       <div class="action-bar">
         <div class="action-bar-row">
           ${this.state.cache(Player, 'player').render()}
-          <button
-            class="action-bar-button"
-            onclick=${this.scrollToLatest.bind(this)}>latest</button>
+          <div class="action-bar-playist-position">
+            ${this.state.playlist.player.show.id !== null
+              ? html`<button class="action-bar-button" onclick=${this.scrollToPlaying.bind(this)}>playing</button>`
+              : ''}
+            <button
+              class="action-bar-button"
+              onclick=${this.scrollToLatest.bind(this)}>latest</button>
+          </div>
         </div>
       </div>
     `
@@ -497,6 +526,10 @@ class ActionBar extends Component {
   }
   scrollToLatest () {
     this.emit('action-bar:scroll-to-latest')
+  }
+  scrollToPlaying () {
+    console.log('action-bar:scroll-to-playing')
+    this.emit('action-bar:scroll-to-playing')
   }
 }
 
