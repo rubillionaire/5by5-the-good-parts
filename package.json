@@ -27,6 +27,7 @@
     "staticpath": "public",
     "prep": [
       "bundle-javascript"
-    ]
+    ],
+    "noprompt": true
   }
 }
