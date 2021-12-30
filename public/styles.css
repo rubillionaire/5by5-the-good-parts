@@ -5,6 +5,7 @@ body {
   font-family: helvetica;
   --max-width: 500px;
   --filter-bar-height: 0px;
+  --color-light-grey: rgb(200, 200, 200);
   background: linear-gradient(
     to right,
     #ffef001c,
@@ -160,7 +161,7 @@ a {
 }
 
 .show-item-timestamp {
-  color: rgb(200, 200, 200);
+  color: var(--color-light-grey);
 }
 
 .show-item-title {
@@ -251,20 +252,49 @@ a {
 }
 
 .action-bar-row {
-  pointer-events: none;
   position: relative;
   margin: 0 auto;
   width: 100%;
   max-width: var(--max-width);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   box-sizing: border-box;
-  padding: 0.5em;
+  padding: 0 1em;
+}
+
+.action-bar-buttons {
+  display: flex;
+  justify-content: center;
+}
+
+.action-bar-button-play-pause,
+.action-bar-button-scroll-to-playing,
+.action-bar-button-scroll-to-latest {
+  margin: 0 0.5em 1em 0.5em;
+  pointer-events: all;
 }
 
 .action-bar-player-container {
   flex-grow: 1;
+}
+
+.action-bar-player-controls-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1em;
+}
+
+.player-controls-progress-container {
+  width: calc(100% - 2em);
+  background-color: black;
+  padding: 0.5em 1em;
+  border-radius: 2em;
+}
+
+.player-controls-progress {
+  width: 100%;
+}
+
+.player-controls-play-pause {
+  margin: 0 1em;
 }
 
 .player-controls-progress,
@@ -274,10 +304,25 @@ a {
   pointer-events: all;
 }
 
-.action-bar-playist-position {
-  pointer-events: all;
+.player-controls-minus-30,
+.player-controls-plus-30 {
+  margin: 0 0.5em;
+}
+
+.action-control-disabled button,
+.action-control-disabled input,
+.action-control-disabled .player-controls-progress-container,
+.action-button-disabled {
+  background-color: var(--color-light-grey);
+  pointer-events: none;
+}
+
+.action-bar-playist-buttons {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   align-items: flex-end;
+}
+.action-bar-playist-button {
+  pointer-events: all;
 }

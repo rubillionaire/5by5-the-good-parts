@@ -277,13 +277,13 @@ class ShowItem extends Component {
       <div
         class="show-item show-item-${this.show.channel.abbreviation} ${extraClasses}"
         id=${this.show.id}>
-        <hgroup class="show-item-header">
-          <header class="show-item-mark" onclick=${this.playShow.bind(this)}>
+        <hgroup class="show-item-header" onclick=${this.playShow.bind(this)}>
+          <header class="show-item-mark">
             <h1 class="show-item-mark-text">${this.show.channel.abbreviation}</h1>
           </header>
-          <header class="show-item-meta" onclick=${this.playShow.bind(this)}>
-            <h3 class="show-item-name">${ this.show.channel.showName } - e${ this.show.episode }</h3>
-            <h1 class="show-item-title">${ this.show.title }</h1>
+          <header class="show-item-meta">
+            <h3 class="show-item-name">${this.show.channel.showName} - e${ this.show.episode }</h3>
+            <h1 class="show-item-title">${this.show.title}</h1>
             <h4 class="show-item-timestamp">aired ${(new Date(this.show.pubDate).toDateString())}</h4>
             <h4 class="show-item-timestamp ${classList({'visually-hidden': this.show.componentState.lastPlayed ? false : true})}">last played ${ this.show.componentState.lastPlayed ? this.show.componentState.lastPlayed : '' }</h4>
           </header>
@@ -340,7 +340,8 @@ class ShowItem extends Component {
     }
     return false
   }
-  toggleDrawer () {
+  toggleDrawer (event) {
+    event.stopPropagation()
     this.emit('show:toggle-drawer', this.show.id)
   }
   playShow () {
@@ -454,7 +455,13 @@ class Player extends Component {
     this.state = state
     this.emit = emit
     this.local = this.state.components[name] = {
-      show: { id: null }, // show : { id, title, media : { url, type} }
+      show: {
+        id: null,
+        media: {
+          url: null,
+          type: null,
+        },
+      },
       audio: null, // managed within this component
     }
   }
@@ -467,9 +474,8 @@ class Player extends Component {
         this.element.removeChild(oldAudio)
       }
     }
-    this.local.show = this.state.playlist.player.show
-    if (this.local.show.id === null) {
-      return html`<div class="empty"></div>`
+    if (this.state.playlist.player.show.id !== null) {
+      this.local.show = this.state.playlist.player.show  
     }
     return html`
       <div class="action-bar-player-container">
@@ -483,28 +489,27 @@ class Player extends Component {
             type="${this.local.show.media.type}"
           />
         </audio>
-        <div class="action-bar-player-controls">
+        <div class="action-bar-player-controls ${classList({'action-control-disabled': this.local.show.id === null})}">
           <div class="action-bar-player-controls-row">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value="0"
-              step="1"
-              class="player-controls-progress"
-              oninput=${this.onProgressInputChange.bind(this)}
-            />
+            <div class="player-controls-progress-container">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value="0"
+                step="1"
+                class="player-controls-progress"
+                oninput=${this.onProgressInputChange.bind(this)}
+              />
+            </div>
           </div>
           <div class="action-bar-player-controls-row">
             <button
               class="player-controls-minus-30"
-              onclick=${this.moveSeekBy.bind(this, -30)}>-30</button>
-            <button
-              class="player-controls-play-pause"
-              onclick=${this.onPlayPause.bind(this)}>pause</button>
+              onclick=${this.moveSeekBy.bind(this, -30)}>-30s</button>
             <button
               class="player-controls-plus-30"
-              onclick=${this.moveSeekBy.bind(this, 30)}>+30</button>
+              onclick=${this.moveSeekBy.bind(this, 30)}>+30s</button>
           </div>
         </div>
       </div>
@@ -519,9 +524,6 @@ class Player extends Component {
         console.log(error)
       })
     // local mutation
-    this.element
-      .querySelector('.player-controls-play-pause')
-      .innerText = this.local.audio.paused ? 'play' : 'pause'
     const progress = this.element
       .querySelector('.player-controls-progress')
     progress.value = 0
@@ -543,18 +545,12 @@ class Player extends Component {
       .querySelector('.player-controls-progress')
     this.local.audio.currentTime = progress.value
   }
-  onPlayPause () {
-    console.log('player:on-play-pause')
-    this.local.audio[this.local.audio.paused ? 'play' : 'pause']()
-    this.element
-      .querySelector('.player-controls-play-pause')
-      .innerText = this.local.audio.paused ? 'play' : 'pause'
-  }
   moveSeekBy (offset) {
     console.log('player:move-seek-by')
     this.local.audio.currentTime = this.local.audio.currentTime + offset
   }
   update () {
+    console.log('player:update')
     if (this.local.show.id !== this.state.playlist.player.show.id) {
       return true
     }
@@ -586,22 +582,20 @@ class ActionBar extends Component {
     return html`
       <div class="action-bar">
         <div class="action-bar-row">
-          ${this.state.cache(Player, 'player').render()}
-          <div class="action-bar-playist-position">
-            ${this.state.playlist.player.show.id !== null
-              ? html`<button
-                          class="action-bar-button"
-                          onclick=${this.scrollToPlaying.bind(this)}
-                        >playing</button>`
-              : ''}
-            ${this.local.hasALastPlayed
-              ? html`<button
-                          class="action-bar-button"
-                          onclick=${this.scrollToLatest.bind(this)}
-                        >latest</button>`
-              : ''}
-            
+          <div class="action-bar-buttons">
+            <button
+              class="action-bar-button-play-pause ${classList({'action-button-disabled': this.state.playlist.player.show.id === null})}"
+              onclick=${this.onPlayPause.bind(this)}>pause</button>
+            <button
+              class="action-bar-button-scroll-to-playing ${classList({'action-button-disabled': this.state.playlist.player.show.id === null})}"
+              onclick=${this.scrollToPlaying.bind(this)}
+            >playing</button>
+            <button
+              class="action-bar-button-scroll-to-latest ${classList({'action-button-disabled': this.local.hasALastPlayed === false})}"
+              onclick=${this.scrollToLatest.bind(this)}
+            >latest</button>
           </div>
+          ${this.state.cache(Player, 'player').render()}
         </div>
       </div>
     `
@@ -615,6 +609,18 @@ class ActionBar extends Component {
   scrollToPlaying () {
     console.log('action-bar:scroll-to-playing')
     this.emit('action-bar:scroll-to-playing')
+  }
+  onPlayPause () {
+    console.log('action-bar:on-play-pause')
+    this.state.components.player.audio[
+      this.state.components.player.audio.paused
+        ? 'play'
+        : 'pause']()
+    this.element
+      .querySelector('.action-bar-button-play-pause')
+      .innerText = this.state.components.player.audio.paused
+        ? 'play'
+        : 'pause'
   }
 }
 
