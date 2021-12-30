@@ -263,7 +263,14 @@ a {
   padding: 0.5em;
 }
 
-.action-bar-player {
+.action-bar-player-container {
+  flex-grow: 1;
+}
+
+.player-controls-progress,
+.player-controls-minus-30,
+.player-controls-play-pause,
+.player-controls-plus-30 {
   pointer-events: all;
 }
 

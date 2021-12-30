@@ -454,7 +454,8 @@ class Player extends Component {
     this.state = state
     this.emit = emit
     this.local = this.state.components[name] = {
-      show: { id: null }, /* show : { id, title, media : { url, type} } */
+      show: { id: null }, // show : { id, title, media : { url, type} }
+      audio: null, // managed within this component
     }
   }
   createElement () {
@@ -472,29 +473,95 @@ class Player extends Component {
     }
     return html`
       <div class="action-bar-player-container">
-        <audio 
-          controls
-          autoplay
+        <audio
           class="action-bar-player"
-          onended=${this.setLastPlayed.bind(this)}>
+          oncanplay=${this.onCanPlay.bind(this)}
+          onprogress=${this.onProgress.bind(this)}
+          onended=${this.onEnded.bind(this)}>
           <source
             src="${this.local.show.media.url}"
             type="${this.local.show.media.type}"
           />
         </audio>
+        <div class="action-bar-player-controls">
+          <div class="action-bar-player-controls-row">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value="0"
+              step="1"
+              class="player-controls-progress"
+              oninput=${this.onProgressInputChange.bind(this)}
+            />
+          </div>
+          <div class="action-bar-player-controls-row">
+            <button
+              class="player-controls-minus-30"
+              onclick=${this.moveSeekBy.bind(this, -30)}>-30</button>
+            <button
+              class="player-controls-play-pause"
+              onclick=${this.onPlayPause.bind(this)}>pause</button>
+            <button
+              class="player-controls-plus-30"
+              onclick=${this.moveSeekBy.bind(this, 30)}>+30</button>
+          </div>
+        </div>
       </div>
     `
+  }
+  onCanPlay () {
+    console.log('player:on-can-play')
+    // implement auto play and set state on local component
+    this.local.audio = this.element.querySelector('audio')
+    this.local.audio.play()
+      .catch((error) => {
+        console.log(error)
+      })
+    // local mutation
+    this.element
+      .querySelector('.player-controls-play-pause')
+      .innerText = this.local.audio.paused ? 'play' : 'pause'
+    const progress = this.element
+      .querySelector('.player-controls-progress')
+    progress.value = 0
+    progress.max = this.local.audio.duration
+  }
+  onProgress () {
+    if (this.local.audio === null) return
+    const progress = this.element
+      .querySelector('.player-controls-progress')
+    progress.value = this.local.audio.currentTime
+  }
+  onEnded () {
+    console.log('player:on-ended')
+    this.emit('player:set-last-played', this.local.show.id, (new Date()).toDateString())
+  }
+  onProgressInputChange () {
+    console.log('player:on-progress-input-change')
+    const progress = this.element
+      .querySelector('.player-controls-progress')
+    this.local.audio.currentTime = progress.value
+  }
+  onPlayPause () {
+    console.log('player:on-play-pause')
+    this.local.audio[this.local.audio.paused ? 'play' : 'pause']()
+    this.element
+      .querySelector('.player-controls-play-pause')
+      .innerText = this.local.audio.paused ? 'play' : 'pause'
+  }
+  moveSeekBy (offset) {
+    console.log('player:move-seek-by')
+    this.local.audio.currentTime = this.local.audio.currentTime + offset
   }
   update () {
     if (this.local.show.id !== this.state.playlist.player.show.id) {
       return true
     }
-    else {
-      return false
+    if (this.local.audio === null) {
+      true
     }
-  }
-  setLastPlayed () {
-    this.emit('player:set-last-played', this.local.show.id, (new Date()).toDateString())
+    return false
   }
 }
 
