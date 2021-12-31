@@ -264,6 +264,15 @@ a {
   bottom: calc(var(--action-bar-drawer-height) * -1);
 }
 
+.action-bar-button-toggle-drawer {
+  transition: transform 0.28s linear;
+  transform: rotate(0deg);
+}
+
+.action-bar-drawer-hidden .action-bar-button-toggle-drawer {
+  transform: rotate(180deg);
+}
+
 .action-bar-row {
   position: relative;
   margin: 0 auto;
