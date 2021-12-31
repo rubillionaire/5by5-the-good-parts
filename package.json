@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "bundle-javascript": "browserify ui.js > public/bundle.js",
+    "bundle-javascript": "BUILD=production; browserify ui.js > public/bundle.js",
     "bundle-javascript:watch": "watchify ui.js -o public/bundle.js",
     "dev": "npm run bundle-javascript:watch",
     "deploy": "gh-pages-deploy"
@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "browserify": "^17.0.0",
+    "choo-devtools": "^3.0.4",
     "gh-pages-deploy": "^0.5.1",
     "watchify": "^4.0.0"
   },

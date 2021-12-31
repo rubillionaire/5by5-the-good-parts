@@ -1,11 +1,16 @@
-body {
-  margin: 0;
-  padding: 0;
-  font-size: 16px;
-  font-family: helvetica;
+:root {
+  --em-size: 16px;
   --max-width: 500px;
   --filter-bar-height: 0px;
   --color-light-grey: rgb(200, 200, 200);
+  --action-bar-drawer-height: 0px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-size: var(--em-size);
+  font-family: helvetica;
   background: linear-gradient(
     to right,
     #ffef001c,
@@ -25,6 +30,8 @@ li {
 }
 
 button {
+  font-size: 1em;
+  line-height: 1em;
   border: none;
   box-shadow: none;
   cursor: pointer;
@@ -33,6 +40,7 @@ button {
   background-color: black;
   padding: 0.5em 1em;
   border-radius: 1em;
+  transition: background-color 0.28s linear;
 }
 
 a {
@@ -249,6 +257,11 @@ a {
   bottom: 0;
   background-color: transparent;
   width: 100%;
+  transition: bottom 0.28s linear;
+}
+
+.action-bar-drawer-hidden {
+  bottom: calc(var(--action-bar-drawer-height) * -1);
 }
 
 .action-bar-row {
@@ -267,12 +280,35 @@ a {
 
 .action-bar-button-play-pause,
 .action-bar-button-scroll-to-playing,
-.action-bar-button-scroll-to-latest {
+.action-bar-button-scroll-to-latest,
+.action-bar-button-toggle-drawer {
   margin: 0 0.5em 1em 0.5em;
   pointer-events: all;
 }
 
-.action-bar-player-container {
+.action-bar-buttons button:first-child {
+  margin-left: 0;
+}
+.action-bar-buttons button:last-child {
+  margin-right: 0;
+}
+
+.action-bar-button-play-pause {
+  /* play & pause widths are different, set a fixed width */
+  min-width: 45px;
+}
+
+.action-bar-button-toggle-drawer {
+  /*force height of this button since glyph is oddly tall*/
+  height: calc(var(--em-size) * 2);
+}
+
+.action-bar-drawer {
+  display: flex;
+  flex-wrap; wrap;
+}
+
+.action-bar-player-controls {
   flex-grow: 1;
 }
 

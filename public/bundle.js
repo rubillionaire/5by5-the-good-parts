@@ -2542,6 +2542,9 @@ const Component = require('choo/component')
 
 const app = choo({ cache: 2000 })
 app.use(showStore)
+// if (process.env.BUILD !== 'production') {
+//   app.use(require('choo-devtools')())
+// }
 app.route('/', mainView)
 app.route('/5by5-archive', mainView)
 app.route('/5by5-archive/', mainView)
@@ -3000,32 +3003,39 @@ class Player extends Component {
         },
       },
       audio: null, // managed within this component
+      startedPlaying: false,
     }
   }
   createElement () {
+    console.log('player:create')
     if (this.local.show.id !== null &&
         this.local.show.id !== this.state.playlist.player.show.id) {
       const oldAudio = this.element.querySelector('audio')
       if (oldAudio) {
         oldAudio.pause()
         this.element.removeChild(oldAudio)
+        this.local.startedPlaying = false
+        console.log('player:create:remove-old-audio')
       }
     }
     if (this.state.playlist.player.show.id !== null) {
+      console.log('player:guard-pass-new-show-id')
       this.local.show = this.state.playlist.player.show  
     }
     return html`
-      <div class="action-bar-player-container">
-        <audio
-          class="action-bar-player"
-          oncanplay=${this.onCanPlay.bind(this)}
-          onprogress=${this.onProgress.bind(this)}
-          onended=${this.onEnded.bind(this)}>
-          <source
-            src="${this.local.show.media.url}"
-            type="${this.local.show.media.type}"
-          />
-        </audio>
+      <div class="action-bar-drawer">
+        ${this.local.show.id !== null
+            ? html`
+              <audio
+                class="action-bar-player"
+                oncanplay=${this.onCanPlay.bind(this)}
+                onprogress=${this.onProgress.bind(this)}
+                onended=${this.onEnded.bind(this)}>
+                <source
+                  src="${this.local.show.media.url}"
+                  type="${this.local.show.media.type}"
+                /></audio>`
+              : ''}
         <div class="action-bar-player-controls ${classList({'action-control-disabled': this.local.show.id === null})}">
           <div class="action-bar-player-controls-row">
             <div class="player-controls-progress-container">
@@ -3053,10 +3063,20 @@ class Player extends Component {
     `
   }
   onCanPlay () {
+    if (this.local.startedPlaying === true) return
     console.log('player:on-can-play')
     // implement auto play and set state on local component
     this.local.audio = this.element.querySelector('audio')
     this.local.audio.play()
+      .then(() => {
+        console.log('player:on-can-play:playing')
+        this.local.startedPlaying = true
+        document
+          .querySelector('.action-bar-button-play-pause')
+          .innerText = this.local.audio.paused
+            ? '▶'
+            : 'll'
+      })
       .catch((error) => {
         console.log(error)
       })
@@ -3092,7 +3112,7 @@ class Player extends Component {
       return true
     }
     if (this.local.audio === null) {
-      true
+      return true
     }
     return false
   }
@@ -3103,26 +3123,25 @@ class ActionBar extends Component {
     super(name)
     this.state = state
     this.emit = emit
-    this.local = {
+    this.local = this.state.components[name] = {
       hasALastPlayed: false,
+      drawerOpen: false,
     }
   }
   createElement () {
+    console.log('action-bar:create')
     if (this.local.hasALastPlayed === false) {
-      const hasBeenPlayed = this.state.playlist.shows.filter((show) => {
-        return show.componentState.lastPlayed !== null
-      })
-      if (hasBeenPlayed.length > 0) {
-        this.local.hasALastPlayed = true
-      }
+      this.local.hasALastPlayed = this.hasALastPlayed()
     }
     return html`
-      <div class="action-bar">
+      <div class="action-bar ${classList({
+          'action-bar-drawer-hidden': !this.local.drawerOpen,
+        })}">
         <div class="action-bar-row">
           <div class="action-bar-buttons">
             <button
               class="action-bar-button-play-pause ${classList({'action-button-disabled': this.state.playlist.player.show.id === null})}"
-              onclick=${this.onPlayPause.bind(this)}>pause</button>
+              onclick=${this.onPlayPause.bind(this)}>▶</button>
             <button
               class="action-bar-button-scroll-to-playing ${classList({'action-button-disabled': this.state.playlist.player.show.id === null})}"
               onclick=${this.scrollToPlaying.bind(this)}
@@ -3130,15 +3149,38 @@ class ActionBar extends Component {
             <button
               class="action-bar-button-scroll-to-latest ${classList({'action-button-disabled': this.local.hasALastPlayed === false})}"
               onclick=${this.scrollToLatest.bind(this)}
-            >latest</button>
+            >last</button>
+            <button
+              class="action-bar-button-toggle-drawer"
+              onclick=${this.toggleDrawer.bind(this)}
+            >❋</button>
           </div>
           ${this.state.cache(Player, 'player').render()}
         </div>
       </div>
     `
   }
+  hasALastPlayed () {
+    const hasBeenPlayed = this.state.playlist.shows.filter((show) => {
+      return show.componentState.lastPlayed !== null
+    })
+    return hasBeenPlayed.length > 0
+  }
+  load () {
+    console.log('action-bar:load')
+    this.setDrawerHeight()
+  }
   update () {
-    return true
+    console.log('action-bar:update')
+    if (this.local.hasALastPlayed === false && this.hasALastPlayed()) {
+      this.local.hasALastPlayed = true
+      return true
+    }
+    // allow update to handle player component
+    if (this.state.components.player.show.id !== this.state.playlist.player.show.id) {
+      return true
+    }
+    return false
   }
   scrollToLatest () {
     this.emit('action-bar:scroll-to-latest')
@@ -3156,8 +3198,20 @@ class ActionBar extends Component {
     this.element
       .querySelector('.action-bar-button-play-pause')
       .innerText = this.state.components.player.audio.paused
-        ? 'play'
-        : 'pause'
+        ? '▶'
+        : 'll'
+  }
+  setDrawerHeight () {
+    const drawer = this.element.querySelector('.action-bar-drawer')
+    const bbox = drawer.getBoundingClientRect()
+    const height = bbox.height
+    console.log('action-bar:set-drawer-height', height)
+    document.documentElement.style.setProperty('--action-bar-drawer-height', `${bbox.height}px`)
+    return height
+  }
+  toggleDrawer () {
+    this.local.drawerOpen = !this.local.drawerOpen
+    this.element.classList.toggle('action-bar-drawer-hidden')
   }
 }
 
