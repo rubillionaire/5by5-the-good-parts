@@ -384,10 +384,16 @@ input[type=range]::-moz-range-thumb {
   background-color: black;
   padding: 0.5em 1em;
   border-radius: 2em;
+  display: flex;
 }
 
 .player-controls-progress {
-  width: 100%;
+  flex-grow: 1;
+}
+.player-controls-duration {
+  flex-grow: 0;
+  margin-right: 0;
+  padding-right: 0;
 }
 
 .player-controls-play-pause {

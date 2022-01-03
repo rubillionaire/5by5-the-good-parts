@@ -3048,6 +3048,7 @@ class Player extends Component {
                 class="player-controls-progress"
                 oninput=${this.onProgressInputChange.bind(this)}
               />
+              <button class="player-controls-duration">${this.local.audio ? this.formatTime(this.local.audio.duration) : '0:00'}</button>
             </div>
           </div>
           <div class="action-bar-player-controls-row">
@@ -3076,6 +3077,9 @@ class Player extends Component {
           .innerText = this.local.audio.paused
             ? '▶'
             : 'll'
+        document
+          .querySelector('.player-controls-duration')
+          .innerText = this.formatTime(this.local.audio.duration)
       })
       .catch((error) => {
         console.log(error)
@@ -3115,6 +3119,14 @@ class Player extends Component {
       return true
     }
     return false
+  }
+  formatTime (seconds) {
+    console.log('player:format-time')
+    let time = new Date(seconds * 1000).toISOString().substr(11, 8)
+    if (time.startsWith('00:')) {
+      time = time.slice(3)
+    }
+    return time
   }
 }
 
