@@ -389,11 +389,12 @@ input[type=range]::-moz-range-thumb {
 
 .player-controls-progress {
   flex-grow: 1;
+  background-color: black;
 }
 .player-controls-duration {
   flex-grow: 0;
-  margin-right: 0;
   padding-right: 0;
+  padding-left: 0.5em;
 }
 
 .player-controls-play-pause {
