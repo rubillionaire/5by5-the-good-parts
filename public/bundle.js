@@ -3048,7 +3048,7 @@ class Player extends Component {
                 class="player-controls-progress"
                 oninput=${this.onProgressInputChange.bind(this)}
               />
-              <button class="player-controls-duration">${this.local.audio ? this.formatTime(this.local.audio.duration) : '0:00'}</button>
+              <span class="player-controls-duration">${this.local.audio ? this.formatTime(this.local.audio.duration) : '0:00'}</span>
             </div>
           </div>
           <div class="action-bar-player-controls-row">

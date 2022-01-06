@@ -385,6 +385,7 @@ input[type=range]::-moz-range-thumb {
   padding: 0.5em 1em;
   border-radius: 2em;
   display: flex;
+  align-items: center;
 }
 
 .player-controls-progress {
@@ -395,6 +396,8 @@ input[type=range]::-moz-range-thumb {
   flex-grow: 0;
   padding-right: 0;
   padding-left: 0.5em;
+  color: white;
+  font-weight: bold;
 }
 
 .player-controls-play-pause {
