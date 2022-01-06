@@ -391,6 +391,7 @@ input[type=range]::-moz-range-thumb {
 .player-controls-progress {
   flex-grow: 1;
   background-color: black;
+  margin-left: 0;
 }
 .player-controls-duration {
   flex-grow: 0;
