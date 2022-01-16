@@ -230,7 +230,9 @@ function showStore (state, emitter) {
   })
 
   emitter.on('show:play-show', (show) => {
+    console.log('show:play-show')
     state.playlist.player.show = show
+    document.title = `${show.channel.showName} - e${show.episode} - ${show.title}`
     render()
   })
 
