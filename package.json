@@ -1,26 +1,33 @@
 {
   "name": "5by5-archive",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "bundle-javascript": "BUILD=production; browserify ui.js > public/bundle.js",
-    "bundle-javascript:watch": "watchify ui.js -o public/bundle.js",
-    "dev": "npm run bundle-javascript:watch",
-    "deploy": "gh-pages-deploy"
+    "bundle-javascript": "node bundle-javascript.js",
+    "bundle-javascript:watch": "watchify ui.js -o public/bundle.js -t [ envify --SERVER_DOMAIN localhost ]",
+    "deploy": "gh-pages-deploy",
+    "db-server:start": "hyp daemon start",
+    "db-server:stop": "hyp daemon stop",
+    "server": "node server.js",
+    "start": "npm run bundle-javascript && npm run server"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hyperspace/cli": "^2.0.0",
     "async": "^3.2.2",
     "choo": "^7.1.0",
     "entities": "^3.0.1",
     "fast-xml-parser": "^4.0.0-beta.8",
+    "rpc-websockets": "^7.4.16",
+    "serve": "^13.0.2",
     "xml2js": "^0.4.23"
   },
   "devDependencies": {
     "browserify": "^17.0.0",
     "choo-devtools": "^3.0.4",
+    "envify": "^4.1.0",
     "gh-pages-deploy": "^0.5.1",
     "watchify": "^4.0.0"
   },
