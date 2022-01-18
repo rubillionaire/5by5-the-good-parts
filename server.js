@@ -1,5 +1,5 @@
-const argv = process.argv.slice(2)
-const host = argv[0]
+const { serverDomain } = require('./config.js')
+const host = serverDomain
 
 ;(async () => {
 
@@ -30,7 +30,7 @@ const host = argv[0]
   // instantiate Server and start listening for requests
   var wsServer = new WebSocketServer({
     port: 8082,
-    host: 'localhost',
+    host: serverDomain,
   })
 
   wsServer.register('state-set', async ({ key, value }) => {
