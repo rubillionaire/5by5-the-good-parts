@@ -2,26 +2,61 @@ const choo = require('choo')
 const html = require('choo/html')
 const raw = require('choo/html/raw')
 const Component = require('choo/component')
+const WebSocket = require('rpc-websockets').Client
 
 const app = choo({ cache: 2000 })
 app.use(showStore)
-// if (process.env.BUILD !== 'production') {
-//   app.use(require('choo-devtools')())
-// }
 app.route('/', mainView)
 app.route('/5by5-archive', mainView)
 app.route('/5by5-archive/', mainView)
 app.mount('#app')
 
-function localState () {
+async function PersistState () {
+  var ws = new WebSocket('ws://localhost:8082')
+
+  await new Promise((resolve, reject) => {
+    ws.on('open', resolve)
+    ws.once('error', reject)
+    ws.once('close', reject)
+  })
+
+  const set = async ({ key, value }) => {
+    ws.call('state-set', { key, value })
+  }
+
+  const get = async ({ timestamp }) => {
+    try {
+      const { result } = await ws.call('state-get', { timestamp }, 2000)
+      return result
+    } catch (error) {
+      console.log('persist-pull:error')
+      return {}
+    }
+  }
+
+  ws.api = {
+    get,
+    set,
+  }
+
+  return ws
+}
+
+function localState (persist) {
   const showKey = (show) => {
     return `show!${show.id}`
   }
   const channelKey = (channel) => {
     return `channel!${channel.showName}`
   }
+  const internalKey = (property) => {
+    return `internal!${property}`
+  }
 
   return {
+    showKey,
+    channelKey,
+    getInternal,
     getShow,
     getChannel,
     saveShow,
@@ -31,7 +66,15 @@ function localState () {
   function getAndParse (key) {
     const item = window.localStorage.getItem(key)
     if (typeof item !== 'string') return null
-    return JSON.parse(item)
+    try {
+      return JSON.parse(item)
+    } catch (error) {
+      return item
+    }
+  }
+
+  function getInternal (property) {
+    return getAndParse(internalKey(property))
   }
 
   function getShow (show) {
@@ -42,8 +85,17 @@ function localState () {
     return getAndParse(channelKey(channel))
   }
 
-  function saveKeyValue (key, value) {
+  async function saveKeyValue (key, value) {
+    const timestamp = Date.now()
+    value.timestamp = timestamp
     window.localStorage.setItem(key, JSON.stringify(value))
+    try {
+      await persist.api.set({ key, value })
+      window.localStorage.setItem(internalKey('sync'), JSON.stringify({ timestamp }))
+    } catch (error) {
+      console.log('save-key-value:error')
+      console.log(error)
+    }
   }
 
   function saveShow (show) {
@@ -55,7 +107,7 @@ function localState () {
   }
 }
 
-function showStore (state, emitter) {
+async function showStore (state, emitter) {
   state.playlist = {
     shows: [],
     channels: [],
@@ -65,68 +117,109 @@ function showStore (state, emitter) {
     },
   }
 
-  const local = localState()
+  let persist
+  try {
+    persist = await PersistState()
+  } catch (error) {
+    console.log('could not connect to WebSocketServer')
+  }
+  
+  const local = localState(persist)
 
-  fetch('shows.json').then((response) => {
-    return response.json()
-  })
-    .then(function (feed) {
-      const channelForName = (showName) => {
-        for (var i = 0; i < feed.channels.length; i++) {
-          if (feed.channels[i].file === showName) {
-            return feed.channels[i]
-          }
-        }
-      }
-      state.playlist.shows = feed.shows.map((show) => {
-        const { showName, episode } = showTitleEp(show)
-        // prep show shape for show list
-        show.id = showId({ showName, episode })
-        show.channel = channelForName(showName)
-        show.episode = episode
-        // state of the show in the app
-        const localShowState = local.getShow(show)
-        if (localShowState) {
-          show.componentState = localShowState
-        }
-        else {
-          show.componentState = {
-            lastPlayed: null,
-            drawerOpen: false,
-          }
-          local.saveShow(show)
-        }
-        show.playOnOpen = false
-        return show
-      })
-
-      state.playlist.channels = feed.channels
-        .map((channel) => {
-          // default app state
-          const localChannelState = local.getChannel(channel)
-          if (localChannelState) {
-            channel.componentState = localChannelState
-          }
-          else {
-            channel.componentState = {
-              displayInPlaylist: true
-            }
-            local.saveChannel(channel)
-          }
-          return channel
-        })
-        .sort((a, b) => {
-          if (a.showName > b.showName) {
-            return 1
-          }
-          if (a.showName < b.showName) {
-            return -1
-          }
-          return 0
-        })
-
-      render()
+  let persisted = {}
+  const internalSyncState = local.getInternal('sync')
+  const syncTimestamp = internalSyncState && internalSyncState.timestamp
+    ? internalSyncState.timestamp
+    : null
+  try {
+    persisted = await persist.api.get({
+      timestamp: syncTimestamp,
     })
+  } catch (error) {
+    console.log('persist-pull:error')
+    console.log(error)
+  }
+
+  const response = await fetch('shows.json')
+  const feed = await response.json()
+
+  const channelForName = (showName) => {
+    for (var i = 0; i < feed.channels.length; i++) {
+      if (feed.channels[i].file === showName) {
+        return feed.channels[i]
+      }
+    }
+  }
+  state.playlist.shows = feed.shows.map((show) => {
+    const { showName, episode } = showTitleEp(show)
+    // prep show shape for show list
+    show.id = showId({ showName, episode })
+    show.channel = channelForName(showName)
+    show.episode = episode
+    // state of the show in the app
+    const localShowState = local.getShow(show)
+    const persistedShowState = persisted[local.showKey(show)]
+    if (localShowState && persistedShowState) {
+      show.componentState = Object.assign(
+        {},
+        localShowState,
+        persistedShowState
+      )
+    }
+    else if (persistedShowState) {
+      show.componentState = persistedShowState
+    }
+    else if (localShowState) {
+      show.componentState = localShowState
+    }
+    else {
+      show.componentState = {
+        lastPlayed: null,
+        drawerOpen: false,
+      }
+      local.saveShow(show)
+    }
+    show.playOnOpen = false
+    return show
+  })
+
+  state.playlist.channels = feed.channels
+    .map((channel) => {
+      // default app state
+      const localChannelState = local.getChannel(channel)
+      const persistedChannelState = persisted[local.channelKey(channel)]
+      if (localChannelState && persistedChannelState) {
+        channel.componentState = Object.assign(
+          {},
+          localChannelState,
+          persistedChannelState
+        )
+      }
+      else if (localChannelState) {
+        channel.componentState = localChannelState
+      }
+      else if (persistedChannelState) {
+        channel.componentState = persistedChannelState
+      }
+      else {
+        channel.componentState = {
+          displayInPlaylist: true
+        }
+        local.saveChannel(channel)
+      }
+      return channel
+    })
+    .sort((a, b) => {
+      if (a.showName > b.showName) {
+        return 1
+      }
+      if (a.showName < b.showName) {
+        return -1
+      }
+      return 0
+    })
+
+  render()
 
   emitter.on('show:toggle-drawer', (showId) => {
     console.log('store:show:toggle-drawer', showId)

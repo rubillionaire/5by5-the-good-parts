@@ -6,16 +6,22 @@
   "scripts": {
     "bundle-javascript": "BUILD=production; browserify ui.js > public/bundle.js",
     "bundle-javascript:watch": "watchify ui.js -o public/bundle.js",
-    "dev": "npm run bundle-javascript:watch",
-    "deploy": "gh-pages-deploy"
+    "deploy": "gh-pages-deploy",
+    "db-server:start": "hyp daemon start",
+    "db-server:stop": "hyp daemon stop",
+    "server": "node server.js",
+    "start": "npm run server"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@hyperspace/cli": "^2.0.0",
     "async": "^3.2.2",
     "choo": "^7.1.0",
     "entities": "^3.0.1",
     "fast-xml-parser": "^4.0.0-beta.8",
+    "rpc-websockets": "^7.4.16",
+    "serve": "^13.0.2",
     "xml2js": "^0.4.23"
   },
   "devDependencies": {
