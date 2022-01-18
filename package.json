@@ -10,7 +10,7 @@
     "db-server:start": "hyp daemon start",
     "db-server:stop": "hyp daemon stop",
     "server": "node server.js",
-    "start": "npm run bundle-javascript && npm run server"
+    "start": "npm run db-server:start && npm run bundle-javascript && npm run server"
   },
   "author": "",
   "license": "ISC",
