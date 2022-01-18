@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "bundle-javascript": "BUILD=production; browserify ui.js > public/bundle.js",
-    "bundle-javascript:watch": "watchify ui.js -o public/bundle.js",
+    "bundle-javascript": "node bundle-javascript.js",
+    "bundle-javascript:watch": "watchify ui.js -o public/bundle.js -t [ envify --SERVER_DOMAIN localhost ]",
     "deploy": "gh-pages-deploy",
     "db-server:start": "hyp daemon start",
     "db-server:stop": "hyp daemon stop",
     "server": "node server.js",
-    "start": "npm run server"
+    "start": "npm run bundle-javascript && npm run server"
   },
   "author": "",
   "license": "ISC",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "browserify": "^17.0.0",
     "choo-devtools": "^3.0.4",
+    "envify": "^4.1.0",
     "gh-pages-deploy": "^0.5.1",
     "watchify": "^4.0.0"
   },
