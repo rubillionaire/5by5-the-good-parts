@@ -11,8 +11,10 @@ app.route('/5by5-archive', mainView)
 app.route('/5by5-archive/', mainView)
 app.mount('#app')
 
+const serverDomain = process.env.SERVER_DOMAIN
+
 async function PersistState () {
-  var ws = new WebSocket('ws://localhost:8082')
+  var ws = new WebSocket(`ws://${serverDomain}:8082`)
 
   await new Promise((resolve, reject) => {
     ws.on('open', resolve)
