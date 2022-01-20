@@ -1,5 +1,5 @@
 const argv = process.argv.slice(2)
-const host = argv[0]
+const host = argv[0] || 'localhost'
 
 ;(async () => {
 
@@ -21,13 +21,10 @@ const host = argv[0]
     keyEncoding: 'binary',
     valueEncoding: 'json'
   })
-  console.log(bee.feed)
-  // await client.replicate(bee.feed) // fetch from the network
   await bee.ready()
 
   var WebSocketServer = require('rpc-websockets').Server
 
-  // instantiate Server and start listening for requests
   var wsServer = new WebSocketServer({
     port: 8082,
     host: 'localhost',
