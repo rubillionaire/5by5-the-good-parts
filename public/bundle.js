@@ -810,13 +810,13 @@ async function PersistantStore () {
       const key = showKey(show)
       return get(key)
     },
+    async saveShow (show) {
+      const key = showKey(show)
+      return set({ key, value: show })
+    },
     getChannel (channel) {
       const key = channelKey(channel)
       return get(key)
-    },
-    async saveShow (show) {
-      const key = channelKey(show)
-      return set({ key, value: show })
     },
     async saveChannel (channel) {
       const key = channelKey(channel)

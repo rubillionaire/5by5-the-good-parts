@@ -12,11 +12,19 @@ const fs = require('fs')
 const b = browserify('browser/app.js')
 const output = fs.createWriteStream('public/bundle.js')
 
+const bundle = () => {
+  b.bundle()
+    .on('error', console.error)
+    .pipe(output)  
+}
+
 if (watch) {
   b.plugin(require('watchify'))
+  b.on('update', bundle)
 }
  
 b.transform(envify({
   SERVER_DOMAIN: serverDomain,
 }))
-b.bundle().pipe(output)
+
+bundle()

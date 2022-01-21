@@ -24,6 +24,13 @@ const ShowsStore = ({ feed, persistantStore }) => (state, emitter) => {
       const persistedState = persistantStore.getShow(show)
       if (persistedState) {
         show.componentState = persistedState
+        // migration to handle transition to storing the id
+        // alongside the values, since we are storing the 
+        // `componentState` portion of the object, not the 
+        // entire value
+        if (!persistedState.id) {
+          show.componentState.id = show.id
+        }
       }
       else {
         show.componentState = {
@@ -43,6 +50,13 @@ const ShowsStore = ({ feed, persistantStore }) => (state, emitter) => {
       const persistedState = persistantStore.getChannel(channel)
       if (persistedState) {
         channel.componentState = persistedState
+        // migration to handle transition to storing the id
+        // alongside the values, since we are storing the 
+        // `componentState` portion of the object, not the 
+        // entire value
+        if (!persistedState.showName) {
+          channel.componentState.showName = channel.showName
+        }
       }
       else {
         channel.componentState = {
