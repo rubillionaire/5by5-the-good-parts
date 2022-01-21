@@ -1,6 +1,9 @@
 const argv = process.argv.slice(2)
 const host = argv[0] || 'localhost'
 
+const HTTP_PORT = 8081
+const WS_PORT = 8082
+
 ;(async () => {
 
   const { Server: HyperspaceServer } = require('hyperspace')
@@ -26,7 +29,7 @@ const host = argv[0] || 'localhost'
   var WebSocketServer = require('rpc-websockets').Server
 
   var wsServer = new WebSocketServer({
-    port: 8082,
+    port: WS_PORT,
     host: 'localhost',
   })
 
@@ -63,11 +66,12 @@ const host = argv[0] || 'localhost'
   const server = http.createServer((request, response) => {
     staticHandler(request, response, {public: 'public'})
   })
-  server.listen(8081, () => {
-    console.log('listening on port 8081')
+  server.listen(HTTP_PORT, () => {
+    console.log(`http://${host}:${HTTP_PORT}`)
   })
 
   process.on('exit', (code) => {
+    server.close()
     wsServer.close()
   })
 })()

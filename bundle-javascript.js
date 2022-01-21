@@ -17,7 +17,7 @@ const browserify = require('browserify')
 const envify = require('envify/custom')
 const fs = require('fs')
  
-const b = browserify('ui.js')
+const b = browserify('browser/app.js')
 const output = fs.createWriteStream('public/bundle.js')
  
 b.transform(envify({

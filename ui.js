@@ -7,8 +7,8 @@ const WebSocket = require('rpc-websockets').Client
 const app = choo({ cache: 2000 })
 app.use(showStore)
 app.route('/', mainView)
-app.route('/5by5-archive', mainView)
-app.route('/5by5-archive/', mainView)
+app.route('/5by5-the-good-parts', mainView)
+app.route('/5by5-the-good-parts/', mainView)
 app.mount('#app')
 
 const serverDomain = process.env.SERVER_DOMAIN
@@ -178,8 +178,9 @@ async function showStore (state, emitter) {
       show.componentState = {
         lastPlayed: null,
         drawerOpen: false,
+        id: show.id,
       }
-      local.saveShow(show)
+      local.saveShow(show.componentState)
     }
     show.playOnOpen = false
     return show
@@ -205,9 +206,10 @@ async function showStore (state, emitter) {
       }
       else {
         channel.componentState = {
-          displayInPlaylist: true
+          displayInPlaylist: true,
+          showName: channel.showName,
         }
-        local.saveChannel(channel)
+        local.saveChannel(channel.componentState)
       }
       return channel
     })
