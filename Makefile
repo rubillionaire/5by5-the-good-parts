@@ -1,10 +1,13 @@
-.PHONY: clean
+.PHONY: clean dev-server
 
-build: clean-built-javascript dl-feeds public/shows.json
-	npm run bundle-javascript
+build: clean-javascript-bundle dl-feeds public/shows.json
+	npm run bundle
 
-dev:
-	npm run dev
+dev-server:
+	npm start
+
+dev-browser:
+	npm run watch
 
 deploy: build
 	npm run deploy
@@ -35,7 +38,7 @@ clean-source-feeds:
 clean-shows-feed:
 	rm public/shows.json
 
-clean-built-javascript:
+clean-javascript-bundle:
 	rm public/bundle.js
 
-clean: clean-source-feeds clean-merged-feed clean-built-javascript
+clean: clean-source-feeds clean-merged-feed clean-javascript-bundle
