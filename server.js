@@ -33,6 +33,10 @@ const WS_PORT = 8082
     host,
   })
 
+  wsServer.on('listening', () => {
+    console.log(`ws://${host}:${WS_PORT}`)
+  })
+
   wsServer.register('state-set', async ({ key, value }) => {
     try {
       const result = await bee.put(key, value)

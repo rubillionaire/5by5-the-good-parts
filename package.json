@@ -4,13 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "bundle-javascript": "node bundle-javascript.js",
-    "bundle-javascript:watch": "watchify browser/app.js -o public/bundle.js -t [ envify --SERVER_DOMAIN localhost ]",
+    "bundle": "node bundle-javascript.js",
+    "watch": "node bundle-javascript.js --watch",
     "deploy": "gh-pages-deploy",
     "db-server:start": "hyp daemon start",
     "db-server:stop": "hyp daemon stop",
     "server": "node server.js",
-    "start": "npm run db-server:start && npm run bundle-javascript && npm run server"
+    "start": "npm run bundle && npm run server"
   },
   "author": "",
   "license": "ISC",

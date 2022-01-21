@@ -1,4 +1,5 @@
 const debug = require('debug')('persistant')
+const { Client: WebSocketClient } = require('rpc-websockets')
 
 const serverDomain = process.env.SERVER_DOMAIN
 
@@ -13,7 +14,7 @@ const internalKey = (property) => {
 }
 
 const RemoteState = async () => {
-  var ws = new WebSocket(`ws://${serverDomain}:8082`)
+  var ws = new WebSocketClient(`ws://${serverDomain}:8082`)
 
   await new Promise((resolve, reject) => {
     ws.on('open', resolve)
@@ -69,6 +70,7 @@ async function PersistantStore () {
   }
   catch (error) {
     debug('remote-store:initialize:error')
+    console.error(error)
     remoteState = {
       async get () { return Promise.reject(null) },
       async set () { return Promise.reject(null) },
@@ -119,8 +121,8 @@ async function PersistantStore () {
     try {
       await remoteState.set({ key, value })
     } catch (error) {
-      debug('set-key-value:error')
-      debug(error)
+      debug('set-remote:error')
+      console.error(error)
     }
   }
 
