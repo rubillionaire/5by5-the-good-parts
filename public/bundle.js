@@ -11,15 +11,14 @@ const ActionBar = require('./components/action-bar')
 const { store: showItemStore } = require('./components/show-item')
 const { store: playerStore } = require('./components/player')
 const { store: actionBarStore } = require('./components/action-bar')
-
 const appStore = require('./stores/app')
-const renderTick = require('./stores/render-tick')
+const renderTickStore = require('./stores/render-tick')
 const PersistantStore = require('./stores/persistant')
 const ShowStore = require('./stores/shows')
 
 const app = choo({ cache: 2000 })
 app.use(appStore)
-app.use(renderTick)
+app.use(renderTickStore)
 app.use(actionBarStore)
 
 ;(async () => {
@@ -45,7 +44,7 @@ app.use(actionBarStore)
 
 
 function mainView (state, emit) {
-  console.log('main view')
+  debug('main-view')
   return html`
     <div id="app">
       ${state.cache(FilterBar.component, 'filter-bar').render()}
@@ -695,12 +694,6 @@ const internalKey = (property) => {
 const RemoteState = async () => {
   var ws = new WebSocketClient(`ws://${serverDomain}:8082`)
 
-  await new Promise((resolve, reject) => {
-    ws.on('open', resolve)
-    ws.once('error', reject)
-    ws.once('close', reject)
-  })
-
   const set = async ({ key, value }) => {
     return await ws.call('state-set', { key, value })
   }
@@ -715,10 +708,25 @@ const RemoteState = async () => {
     }
   }
 
-  return {
-    get,
-    set,
+  const notConnceted = (intended) => () => {
+    return Promise.resolve(`${intended} could not be completed.
+      no websocket connection to the server.`)
   }
+
+  const api = await new Promise((resolve, reject) => {
+    ws.on('open', () => {
+      resolve({ set, get })
+    })
+    ws.once('error', (error) => {
+      console.error(error)
+      resolve({
+        set: notConnceted('set'),
+        get: notConnceted('get'),
+      })
+    })
+  })
+
+  return api
 }
 
 const LocalState = () => {
@@ -743,19 +751,7 @@ const LocalState = () => {
 }
 
 async function PersistantStore () {
-  let remoteState
-  try {
-    remoteState = await RemoteState()
-  }
-  catch (error) {
-    debug('remote-store:initialize:error')
-    console.error(error)
-    remoteState = {
-      async get () { return Promise.reject(null) },
-      async set () { return Promise.reject(null) },
-    }
-  }
-
+  const remoteState = await RemoteState()
   const localState = LocalState()
 
   const internalSyncState = localState.get(internalKey('sync'))
@@ -864,6 +860,13 @@ const ShowsStore = ({ feed, persistantStore }) => (state, emitter) => {
       const persistedState = persistantStore.getShow(show)
       if (persistedState) {
         show.componentState = persistedState
+        // migration to handle transition to storing the id
+        // alongside the values, since we are storing the 
+        // `componentState` portion of the object, not the 
+        // entire value
+        if (!persistedState.id) {
+          show.componentState.id = show.id
+        }
       }
       else {
         show.componentState = {
@@ -883,6 +886,13 @@ const ShowsStore = ({ feed, persistantStore }) => (state, emitter) => {
       const persistedState = persistantStore.getChannel(channel)
       if (persistedState) {
         channel.componentState = persistedState
+        // migration to handle transition to storing the id
+        // alongside the values, since we are storing the 
+        // `componentState` portion of the object, not the 
+        // entire value
+        if (!persistedState.showName) {
+          channel.componentState.showName = channel.showName
+        }
       }
       else {
         channel.componentState = {

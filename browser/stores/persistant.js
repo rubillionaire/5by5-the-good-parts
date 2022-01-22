@@ -14,13 +14,8 @@ const internalKey = (property) => {
 }
 
 const RemoteState = async () => {
+  debug('remote-state:initialize')
   var ws = new WebSocketClient(`ws://${serverDomain}:8082`)
-
-  await new Promise((resolve, reject) => {
-    ws.on('open', resolve)
-    ws.once('error', reject)
-    ws.once('close', reject)
-  })
 
   const set = async ({ key, value }) => {
     return await ws.call('state-set', { key, value })
@@ -36,13 +31,31 @@ const RemoteState = async () => {
     }
   }
 
-  return {
-    get,
-    set,
+  const notConnceted = (intended) => () => {
+    return Promise.resolve(`${intended} could not be completed.
+      no websocket connection to the server.`)
   }
+
+  const api = await new Promise((resolve, reject) => {
+    ws.on('open', () => {
+      debug('remote-state:open')
+      resolve({ set, get })
+    })
+    ws.once('error', (error) => {
+      debug('remote-state:error')
+      console.error(error)
+      resolve({
+        set: notConnceted('set'),
+        get: notConnceted('get'),
+      })
+    })
+  })
+
+  return api
 }
 
 const LocalState = () => {
+  debug('local-state:initialize')
   const get = (key) => {
     const item = window.localStorage.getItem(key)
     if (typeof item !== 'string') return null
@@ -64,19 +77,7 @@ const LocalState = () => {
 }
 
 async function PersistantStore () {
-  let remoteState
-  try {
-    remoteState = await RemoteState()
-  }
-  catch (error) {
-    debug('remote-store:initialize:error')
-    console.error(error)
-    remoteState = {
-      async get () { return Promise.reject(null) },
-      async set () { return Promise.reject(null) },
-    }
-  }
-
+  const remoteState = await RemoteState()
   const localState = LocalState()
 
   const internalSyncState = localState.get(internalKey('sync'))

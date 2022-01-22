@@ -10,15 +10,14 @@ const ActionBar = require('./components/action-bar')
 const { store: showItemStore } = require('./components/show-item')
 const { store: playerStore } = require('./components/player')
 const { store: actionBarStore } = require('./components/action-bar')
-
 const appStore = require('./stores/app')
-const renderTick = require('./stores/render-tick')
+const renderTickStore = require('./stores/render-tick')
 const PersistantStore = require('./stores/persistant')
 const ShowStore = require('./stores/shows')
 
 const app = choo({ cache: 2000 })
 app.use(appStore)
-app.use(renderTick)
+app.use(renderTickStore)
 app.use(actionBarStore)
 
 ;(async () => {
