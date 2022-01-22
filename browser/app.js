@@ -44,7 +44,7 @@ app.use(actionBarStore)
 
 
 function mainView (state, emit) {
-  console.log('main view')
+  debug('main-view')
   return html`
     <div id="app">
       ${state.cache(FilterBar.component, 'filter-bar').render()}
