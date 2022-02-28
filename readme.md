@@ -1,5 +1,7 @@
 # [5by5][5by5] the good parts
 
+**update:** 5by5.tv no longer hosts these podcasts, so this interface is no longer useful.
+
 a podcast player web app that interleaves 5 podcast feeds into a unified list. state of the list is persisted in localStorage and secondarily in a remote [hyperbee](https://github.com/hypercore-protocol/hyperbee) when it is available.
 
 ### background
